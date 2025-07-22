@@ -1,11 +1,5 @@
 # LittleBankXA
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-
 A financial portfolio management application. This project is designed to demonstrate building a REST API and a web front-end to manage a financial portfolio containing stocks, bonds, cash, etc.
 
 ## Table of Contents
@@ -88,13 +82,8 @@ Contributions are what make the open source community such an amazing place to l
 4.  Push to the Branch (`git push origin feature/AmazingFeature`)
 5.  Open a Pull Request
 
-## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_twitter) - email@example.com
 
 Project Link: [https://github.com/your_username/LittleBankXA](https://github.com/your_username/LittleBankXA)
 
