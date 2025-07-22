@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合 - 投资组合管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>投资组合管理系统</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">仪表盘</a></li>
+                <li><a href="portfolio.html" class="active">投资组合</a></li>
+                <li><a href="add_asset.html">添加资产</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="portfolio-list">
+            <h2>我的投资组合</h2>
+            <div id="portfolio-summary">
+                <div class="summary-item">
+                    <h3>总资产</h3>
+                    <p id="total-assets">--</p>
+                </div>
+                <div class="summary-item">
+                    <h3>剩余现金</h3>
+                    <p id="cash-balance">--</p>
+                </div>
+                <div class="summary-item">
+                    <button id="recharge-btn">充值</button>
+                </div>
+            </div>
+            <div id="portfolio-message"></div>
+            <div class="table-container">
+                <table id="assets-table">
+                    <thead>
+                        <tr>
+                            <th>资产名称</th>
+                            <th>类型</th>
+                            <th>代码</th>
+                            <th>数量</th>
+                            <th>购买价格</th>
+                            <th>当前价格</th>
+                            <th>购买日期</th>
+                            <th>市值</th>
+                            <th>盈亏</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assets-table-body">
+                        <tr><td colspan="10" class="loading">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 投资组合管理系统</p>
+    </footer>
+    <script src="js/portfolio.js"></script>
+</body>
+</html>

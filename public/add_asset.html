@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加资产 - 投资组合管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>投资组合管理系统</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">仪表盘</a></li>
+                <li><a href="portfolio.html">投资组合</a></li>
+                <li><a href="add_asset.html" class="active">添加资产</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="add-asset-form-section">
+            <h2>添加资产</h2>
+            <div id="form-message"></div>
+            <form id="add-asset-form">
+                <div class="form-group">
+                    <label for="asset-type">资产类型</label>
+                    <select id="asset-type" name="assetType" required>
+                        <option value="stock">股票</option>
+                        <option value="bond">债券</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="symbol">代码</label>
+                    <input type="text" id="symbol" name="symbol" required placeholder="例如: AAPL">
+                </div>
+
+                <div class="form-group">
+                    <label for="name">名称</label>
+                    <input type="text" id="name" name="name" required placeholder="例如: 苹果公司">
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">数量</label>
+                    <input type="number" id="quantity" name="quantity" step="0.01" min="0.01" required placeholder="例如: 10">
+                </div>
+
+                <div class="form-group">
+                    <label for="purchase-price">购买价格</label>
+                    <input type="number" id="purchase-price" name="purchasePrice" step="0.01" min="0.01" required placeholder="例如: 180.50">
+                </div>
+
+                <div class="form-group">
+                    <label for="purchase-date">购买日期</label>
+                    <input type="date" id="purchase-date" name="purchaseDate" required>
+                </div>
+
+                <!-- 债券特有字段 -->
+                <div id="bond-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="face-value">面值</label>
+                        <input type="number" id="face-value" name="faceValue" step="0.01" min="0.01" placeholder="例如: 1000.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="coupon-rate">票面利率 (%)</label>
+                        <input type="number" id="coupon-rate" name="couponRate" step="0.01" min="0" max="100" placeholder="例如: 3.85">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maturity-date">到期日期</label>
+                        <input type="date" id="maturity-date" name="maturityDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn">添加资产</button>
+                </div>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 投资组合管理系统</p>
+    </footer>
+    <script src="js/add_asset.js"></script>
+</body>
+</html>
