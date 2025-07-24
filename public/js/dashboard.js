@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalValueElement = document.getElementById('total-value');
     const totalReturnElement = document.getElementById('total-return');
     const recentAssetsList = document.getElementById('recent-assets-list');
+    const recentInfoList = document.getElementById('recent-info-list');
     const performanceChartCanvas = document.getElementById('performance-chart');
 
     // 初始化图表
@@ -135,6 +136,81 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('获取表现数据时发生错误:', error);
             });
     }
+
+
+    const axios = require('axios');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=D1G2YLAXSIE1Z2GM';
+
+const POOL = ['AAPL','MSFT','GOOGL','AMZN','TSLA','NVDA','META','NFLX'];
+app.get('/quote/:symbol', async (req, res) => {
+  const result = [];
+  for (const symbol of POOL) {
+    try {
+      const { data } = await axios.get(url, {
+        params: { function: 'GLOBAL_QUOTE', symbol, apikey: process.env.ALPHA_KEY }
+      });
+      const q = data['Global Quote'];
+      result.push({
+        symbol,
+        price: q?.['05. price'] || null,
+        change: q?.['09. change'] || null,
+        changePercent: q?.['10. change percent'] || null
+      });
+    } catch {
+      result.push({ symbol, error: 'fetch failed' });
+    }
+  }
+  res.json(result);
+});
+
+// // 2. 日线历史（Daily Time Series）
+// app.get('/history/:symbol', async (req, res) => {
+//   try {
+//     const { symbol } = req.params;
+//     const { data } = await axios.get(url, {
+//       params: {
+//         function: 'TIME_SERIES_DAILY',
+//         symbol,
+//         outputsize: 'compact', // 最近 100 天
+//         apikey: process.env.ALPHA_KEY
+//       }
+//     });
+//     res.json(data['Time Series (Daily)']);
+//   } catch (e) {
+//     res.status(500).json({ error: e.message });
+//   }
+// });
+
+// GET /history/:symbol?date=2024-07-24
+app.get('/history/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { date }   = {"date":"2025-05-21"}           // 前端传 ?date=YYYY-MM-DD
+    const { data } = await axios.get(url, {
+      params: {
+        function: 'TIME_SERIES_DAILY',
+        symbol,
+        outputsize: 'compact',  // 最近 100 天
+        apikey: process.env.ALPHA_KEY
+      }
+    });
+
+    const all = data['Time Series (Daily)'];
+    if (!all) return res.status(404).json({ error: 'no data' });
+
+    // 如果指定日期，就返回单条；否则返回全部
+    const result = date ? { [date]: all[date] } : all;
+    if (date && !result[date]) return res.status(404).json({ error: 'date not found' });
+
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
     // 初始化数据
     fetchPortfolioOverview();
