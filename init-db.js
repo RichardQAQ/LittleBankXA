@@ -57,14 +57,12 @@ async function initDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS portfolio (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
         asset_type ENUM('stock', 'bond', 'cash') NOT NULL,
         asset_id INT NOT NULL,
         quantity DECIMAL(10, 4) NOT NULL,
         purchase_price DECIMAL(10, 2) NOT NULL,
         purchase_date DATE NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        UNIQUE KEY unique_asset (user_id, asset_type, asset_id)
+        UNIQUE KEY unique_asset (asset_type, asset_id)
       )
     `);
 

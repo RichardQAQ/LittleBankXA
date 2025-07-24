@@ -1,9 +1,38 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    // 初始化现金余额
+    fetchCashBalance();
+
+    // 初始化投资组合概览
+    fetchPortfolioOverview();
+
+    // 初始化最近资产
+    fetchRecentAssets();
+
+    // 初始化表现图表
+    fetchPerformanceData();
+
     // 获取DOM元素
     const totalValueElement = document.getElementById('total-value');
     const totalReturnElement = document.getElementById('total-return');
+    const cashBalanceElement = document.getElementById('cash-balance');
     const recentAssetsList = document.getElementById('recent-assets-list');
     const performanceChartCanvas = document.getElementById('performance-chart');
+    const rechargeAmountInput = document.getElementById('recharge-amount');
+    const rechargeButton = document.getElementById('recharge-button');
+    const rechargeMessageElement = document.getElementById('recharge-message');
+
+    // 添加充值按钮事件监听
+    if (rechargeButton) {
+        rechargeButton.addEventListener('click', handleRecharge);
+
+        // 允许按Enter键提交充值
+        rechargeAmountInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleRecharge();
+            }
+        });
+    }
 
     // 初始化图表
     let performanceChart = new Chart(performanceChartCanvas, {
@@ -50,29 +79,102 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 获取投资组合概览数据
-    function fetchPortfolioOverview() {
-        console.log('开始获取投资组合概览数据');
-        fetch('/api/portfolio/overview')
+function fetchPortfolioOverview() {
+    console.log('开始获取投资组合概览数据');
+    fetch('/api/portfolio/overview')
+        .then(response => {
+            console.log('概览数据响应状态:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                totalValueElement.textContent = '错误';
+                totalReturnElement.textContent = '错误';
+                console.error('获取概览数据失败:', data.error);
+            } else {
+                // 格式化总资产，保留2位小数
+                const formattedValue = '¥' + data.totalValue.toFixed(2);
+                totalValueElement.textContent = formattedValue;
+                
+                // 格式化收益率，保留2位小数并添加百分比符号
+                const formattedReturn = data.totalReturn.toFixed(2) + '%';
+                totalReturnElement.textContent = formattedReturn;
+            }
+        })
+        .catch(error => {
+            totalValueElement.textContent = '加载失败';
+            totalReturnElement.textContent = '加载失败';
+            console.error('获取概览数据时发生错误:', error);
+        });
+}
+
+    // 获取现金余额
+    function fetchCashBalance() {
+        console.log('开始获取现金余额数据');
+        fetch('/api/portfolio/cash')
             .then(response => {
-                console.log('概览数据响应状态:', response.status);
-                console.log('概览数据响应头:', response.headers);
+                console.log('现金余额响应状态:', response.status);
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    totalValueElement.textContent = '错误';
-                    totalReturnElement.textContent = '错误';
-                    console.error('获取概览数据失败:', data.error);
+                    cashBalanceElement.textContent = '错误';
+                    console.error('获取现金余额失败:', data.error);
                 } else {
-                    totalValueElement.textContent = '¥' + data.totalValue.toFixed(2);
-                    totalReturnElement.textContent = data.totalReturn.toFixed(2) + '%';
+                    cashBalanceElement.textContent = '¥' + data.balance.toFixed(2);
                 }
             })
             .catch(error => {
-                totalValueElement.textContent = '加载失败';
-                totalReturnElement.textContent = '加载失败';
-                console.error('获取概览数据时发生错误:', error);
+                cashBalanceElement.textContent = '加载失败';
+                console.error('获取现金余额时发生错误:', error);
             });
+    }
+
+    // 处理充值
+    function handleRecharge() {
+        const amount = parseFloat(rechargeAmountInput.value);
+        if (isNaN(amount) || amount <= 0) {
+            showRechargeMessage('请输入有效的充值金额', 'error');
+            return;
+        }
+
+        fetch('/api/portfolio/recharge', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showRechargeMessage('充值失败: ' + data.error, 'error');
+                console.error('充值失败:', data.error);
+            } else {
+                showRechargeMessage(data.message, 'success');
+                rechargeAmountInput.value = '';
+                // 更新现金余额
+                fetchCashBalance();
+                // 更新总资产
+                fetchPortfolioOverview();
+            }
+        })
+        .catch(error => {
+            showRechargeMessage('充值时发生错误', 'error');
+            console.error('充值时发生错误:', error);
+        });
+    }
+
+    // 显示充值消息
+    function showRechargeMessage(text, type = 'info') {
+        rechargeMessageElement.textContent = text;
+        rechargeMessageElement.className = type === 'error' ? 'error-message' : 'success-message';
+        rechargeMessageElement.style.display = 'block';
+
+        // 5秒后隐藏消息
+        setTimeout(() => {
+            rechargeMessageElement.style.display = 'none';
+        }, 5000);
     }
 
     // 获取最近添加的资产

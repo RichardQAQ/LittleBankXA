@@ -9,6 +9,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('purchase-date').value = today;
 
+    // 解析URL参数并填充表单
+    function fillFormFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const assetType = urlParams.get('type');
+        if (assetType === 'stock') {
+            // 设置资产类型为股票
+            document.getElementById('asset-type').value = 'stock';
+            // 隐藏债券特有字段
+            bondSpecificFields.style.display = 'none';
+            // 填充股票代码和名称
+            const symbol = urlParams.get('symbol');
+            const name = urlParams.get('name');
+            if (symbol) document.getElementById('symbol').value = symbol;
+            if (name) document.getElementById('name').value = name;
+        }
+    }
+
+    // 页面加载时填充表单
+    fillFormFromUrl();
+
     // 监听资产类型变化
     assetTypeSelect.addEventListener('change', function() {
         if (this.value === 'bond') {

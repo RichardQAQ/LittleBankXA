@@ -1,10 +1,12 @@
 {
   "description": "A financial portfolio management application. This project is designed to demonstrate building a REST API and a web front-end to manage a financial portfolio containing stocks, bonds, cash, etc.",
   "dependencies": {
+    "alpha-vantage-cli": "^1.0.8",
     "axios": "^1.6.0",
     "express": "^4.18.2",
     "mysql2": "^3.14.2",
-    "node-cron": "^3.0.2"
+    "node-cron": "^3.0.2",
+    "yahoo-finance-api": "^0.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
@@ -12,7 +14,6 @@
   "name": "littlebankxa",
   "version": "1.0.0",
   "main": "db.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"

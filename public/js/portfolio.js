@@ -61,41 +61,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>¥${marketValue}</td>
                 <td class="${profitLossClass}">¥${profitLoss}</td>
                 <td>
-                    <button class="btn btn-danger delete-asset" data-id="${asset.id}">删除</button>
+                    <button class="btn btn-danger sell-asset" data-id="${asset.id}" data-type="${asset.type}" data-symbol="${asset.symbol}" data-quantity="${asset.quantity}">卖出</button>
                 </td>
             </tr>`;
         });
         assetsTableBody.innerHTML = html;
 
-        // 添加删除按钮事件监听
-        document.querySelectorAll('.delete-asset').forEach(button => {
+        // 添加卖出按钮事件监听
+        document.querySelectorAll('.sell-asset').forEach(button => {
             button.addEventListener('click', function() {
                 const assetId = this.getAttribute('data-id');
-                deleteAsset(assetId);
+                const type = this.getAttribute('data-type');
+                const symbol = this.getAttribute('data-symbol');
+                const quantity = parseFloat(this.getAttribute('data-quantity'));
+                sellAsset(assetId, type, symbol, quantity);
             });
         });
     }
 
-    // 删除资产
-    function deleteAsset(assetId) {
-        if (confirm('确定要删除此资产吗？')) {
-            fetch(`/api/portfolio/${assetId}`, {
-                method: 'DELETE'
+    // 卖出资产
+    function sellAsset(assetId, type, symbol, maxQuantity) {
+        const sellQuantity = prompt(`请输入卖出数量 (最大: ${maxQuantity})`);
+        if (sellQuantity === null) return; // 用户取消操作
+
+        const quantity = parseFloat(sellQuantity);
+        if (isNaN(quantity) || quantity <= 0 || quantity > maxQuantity) {
+            alert('请输入有效的卖出数量');
+            return;
+        }
+
+        if (confirm(`确定要卖出 ${quantity} 单位的 ${symbol} 吗？`)) {
+            fetch(`/api/portfolio/sell`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    assetId: assetId,
+                    quantity: quantity
+                })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    showMessage('删除资产失败: ' + data.error, 'error');
-                    console.error('删除资产失败:', data.error);
+                    showMessage('卖出资产失败: ' + data.error, 'error');
+                    console.error('卖出资产失败:', data.error);
                 } else {
-                    showMessage('资产删除成功', 'success');
+                    showMessage('资产卖出成功', 'success');
                     // 重新加载数据
                     loadPortfolioData();
                 }
             })
             .catch(error => {
-                showMessage('删除资产时发生错误', 'error');
-                console.error('删除资产时发生错误:', error);
+                showMessage('卖出资产时发生错误', 'error');
+                console.error('卖出资产时发生错误:', error);
             });
         }
     }

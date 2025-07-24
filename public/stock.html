@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票市场 - LittleBankXA</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>投资组合管理系统</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">首页</a></li>
+                <li><a href="portfolio.html">投资组合</a></li>
+                <li><a href="stock.html" class="active">股票市场</a></li>
+                <li><a href="bond.html">债券市场</a></li>
+                <li><a href="add_asset.html">添加资产</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="stock-market">
+            <h2>股票市场</h2>
+            
+            <div class="search-bar">
+                <input type="text" id="stock-symbol" placeholder="输入股票代码 (例如: AAPL)">
+                <button id="search-stock">查询</button>
+                <button id="update-price">更新价格</button>
+            </div>
+
+            <div class="stock-details" id="stock-details">
+                <h3>股票详情</h3>
+                <div class="loading" id="loading">加载中...</div>
+                <div class="error" id="error"></div>
+                <div class="data" id="stock-data"></div>
+            </div>
+
+            <div class="stock-list">
+                <h3>我的关注列表</h3>
+                <table id="stock-table">
+                    <thead>
+                        <tr>
+                            <th>代码</th>
+                            <th>名称</th>
+                            <th>当前价格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 投资组合管理系统</p>
+    </footer>
+
+    <script src="js/stock.js"></script>
+</body>
+</html>
