@@ -5,7 +5,7 @@ const dbConfig = {
   host: 'localhost',
   user: 'root', // 默认用户名，根据实际情况修改
   password: 'n3u3da!', // 默认密码，根据实际情况修改
-  database: 'investment_system' // 数据库名称，稍后我们会创建
+  database: 'testdb_t4' // 数据库名称，稍后我们会创建
 };
 
 // 创建数据库连接池

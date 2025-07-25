@@ -16,10 +16,11 @@ const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PWD || 'n3u3da!',
-  database: 'teststocks'
+  database: 'testdb_t4'
 };
 
 const ALPHA_KEY = 'DK81UQ20HPA8A0WU';
+// const ALPHA_KEY = '9ZRZOFP1CUIWPRYQ';
 
 /* 获取某支股票全部历史日线 */
 async function fetchHistory(symbol) {

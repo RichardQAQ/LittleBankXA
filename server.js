@@ -3,6 +3,11 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const path = require('path');
+const axios = require('axios');
+const dotenv = require('dotenv');
+
+// ADD THIS LINE - Import the price service
+const priceService = require('./services/priceService');
 
 // 中间件
 app.use(express.json());
@@ -14,7 +19,11 @@ const apiRouter = express.Router();
 
 // 测试API
 apiRouter.get('/test', (req, res) => {
-  res.json({ message: 'API is working!' });
+  res.json({
+    message: 'API is working',
+    timestamp: new Date(),
+    database: 'testdb_t4'
+  });
 });
 
 // 获取投资组合概览
@@ -287,8 +296,6 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
   }
 });
 
-const axios = require('axios');
-const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -321,9 +328,116 @@ app.get('/history/:symbol', async (req, res) => {
   }
 });
 
+// Get user watchlist
+apiRouter.get('/watchlist', async (req, res) => {
+  // Return user's watched stocks
+});
 
+// Add stock to watchlist
+apiRouter.post('/watchlist/add', async (req, res) => {
+  const { symbol } = req.body;
+  const userId = 1; // For now, hardcode user ID
+  
+  try {
+    // Check if stock exists, if not add it
+    let stockId;
+    const [stockCheck] = await pool.query('SELECT id FROM stocks WHERE symbol = ?', [symbol]);
+    
+    if (stockCheck.length === 0) {
+      // Add new stock with real-time data
+      const stockData = await priceService.addNewStockToSystem(symbol);
+      stockId = stockData.id;
+    } else {
+      stockId = stockCheck[0].id;
+    }
+    
+    // Add to watchlist if not already there
+    await pool.query(
+      'INSERT IGNORE INTO watchlist (user_id, stock_id) VALUES (?, ?)',
+      [userId, stockId]
+    );
+    
+    res.json({ success: true, message: `${symbol} added to watchlist` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// Remove stock from watchlist
+apiRouter.delete('/watchlist/remove/:id', async (req, res) => {
+  // Remove stock from watchlist
+});
 
+// Search for stocks to add
+apiRouter.get('/stocks/search', async (req, res) => {
+  const { query } = req.query;
+  
+  try {
+    const results = await priceService.searchSymbol(query);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get historical data for a stock
+apiRouter.get('/stocks/:symbol/history', async (req, res) => {
+  // Return historical data for charting
+});
+
+// Verify database has updated prices
+apiRouter.get('/prices/verify', async (req, res) => {
+  try {
+    console.log('Verifying price data in database');
+    const [stocks] = await pool.query(`
+      SELECT symbol, current_price, change_percent, last_updated 
+      FROM stocks 
+      ORDER BY last_updated DESC
+    `);
+    
+    res.json({
+      database: 'testdb_t4',
+      stocks_count: stocks.length,
+      latest_stocks: stocks.slice(0, 5),
+      server_time: new Date()
+    });
+  } catch (error) {
+    console.error('Database verification error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// *** PRICES UPDATE ENDPOINT ***
+apiRouter.post('/prices/update', async (req, res) => {
+  try {
+    console.log('🔄 Manual price update requested');
+    
+    // Make sure priceService is properly imported at the top of your file
+    // const priceService = require('./services/priceService');
+    
+    const result = await priceService.updateAllStockPrices();
+    console.log('Update result:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Price update error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: 'Server failed to process price update request'
+    });
+  }
+});
+
+// Add this endpoint to check API status
+apiRouter.get('/prices/status', (req, res) => {
+  try {
+    const status = priceService.getStatus();
+    status.server_time = new Date();
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // 挂载API路由
 app.use('/api', apiRouter);

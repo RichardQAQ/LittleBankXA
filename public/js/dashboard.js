@@ -207,18 +207,102 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
+    function initializeStockSearch() {
+        new StockSearch('stock-search-container', () => {
+            // Callback when stock added - refresh lists
+            fetchWatchlist();
+            fetchRecentAssets();
+        });
+    }
 
+    async function fetchWatchlist() {
+        // Fetch and display user's watchlist
+    }
 
+    function displayStockDetails(symbol) {
+        // Fetch and display combined real-time and historical data
+        fetchRealTimeData(symbol)
+            .then(realTimeData => {
+                // Display current price, change, etc.
+                
+                // Then initialize historical chart
+                new StockChart('historical-chart-container', symbol);
+            });
+    }
 
     // 初始化数据
     fetchPortfolioOverview();
     fetchRecentAssets();
     fetchPerformanceData();
     fetchStockInfo();
+    initializeStockSearch();
+    fetchWatchlist();
 
     // 设置定时刷新
     setInterval(fetchPortfolioOverview, 60000); // 每分钟刷新一次
     setInterval(fetchRecentAssets, 60000);
     setInterval(fetchPerformanceData, 300000); // 每5分钟刷新一次
     setInterval(fetchStockInfo, 300000);
+    setInterval(fetchWatchlist, 60000);
 });
+
+async function updatePrices() {
+    try {
+        console.log('🔄 Updating stock prices from API...');
+        
+        // Show updating status
+        const statusElement = document.getElementById('api-status-text');
+        if (statusElement) {
+            statusElement.textContent = 'Updating prices...';
+        }
+        
+        // Make POST request to update prices
+        const response = await fetch('/api/prices/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({}) // Empty body is fine
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Price update result:', data);
+        
+        if (data.success) {
+            console.log(`✅ Successfully updated ${data.updated} prices out of ${data.total} tickers`);
+            
+            // Show success message
+            if (statusElement) {
+                statusElement.textContent = `Updated ${data.updated} stocks at ${new Date().toLocaleTimeString()}`;
+            }
+            
+            // Refresh all data on the page
+            if (window.fetchPortfolioOverview) await window.fetchPortfolioOverview();
+            if (window.fetchRecentAssets) await window.fetchRecentAssets();
+            if (window.fetchPerformanceData) await window.fetchPerformanceData();
+            if (window.fetchStockInfo) await window.fetchStockInfo();
+            
+            alert(`Successfully updated ${data.updated} stock prices in database.`);
+        } else {
+            throw new Error(data.error || 'Price update failed');
+        }
+    } catch (error) {
+        console.error('❌ Error updating prices:', error);
+        
+        // Show error in status
+        const statusElement = document.getElementById('api-status-text');
+        if (statusElement) {
+            statusElement.textContent = `Update failed: ${error.message}`;
+        }
+        
+        alert('Error updating prices: ' + error.message);
+    }
+}
+
+// Make the function available globally
+window.updatePrices = updatePrices;

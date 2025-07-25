@@ -44,6 +44,29 @@
             <h2>最近添加的资产</h2>
             <div id="recent-assets-list">加载中...</div>
         </section>
+        <section id="watchlist">
+            <h2>Your Watchlist</h2>
+            <div id="watchlist-container"></div>
+        </section>
+        <section id="stock-search">
+            <h2>Discover Stocks</h2>
+            <div id="stock-search-container"></div>
+        </section>
+        <section id="historical-charts">
+            <h2>Historical Performance</h2>
+            <div class="chart-selector">
+                <select id="chart-stock-selector"></select>
+            </div>
+            <div id="historical-chart-container"></div>
+        </section>
+        <section id="api-status">
+            <h2>API Connection</h2>
+            <div class="card">
+                <h3>Alpha Vantage API</h3>
+                <p id="api-status-text">Unknown</p>
+                <button onclick="updatePrices()" class="btn">Update Prices</button>
+            </div>
+        </section>
     </main>
     <footer>
         <p>&copy; 2024 投资组合管理系统</p>

@@ -39,3 +39,28 @@ CREATE TABLE IF NOT EXISTS portfolio (
   FOREIGN KEY (user_id) REFERENCES users(id),
   UNIQUE KEY unique_asset (user_id, asset_type, asset_id)
 );
+
+-- Add to create_tables.sql
+CREATE TABLE IF NOT EXISTS stock_history (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  stock_id INT NOT NULL,
+  trade_date DATE NOT NULL,
+  open_price DECIMAL(10, 2) NOT NULL,
+  high_price DECIMAL(10, 2) NOT NULL,
+  low_price DECIMAL(10, 2) NOT NULL,
+  close_price DECIMAL(10, 2) NOT NULL,
+  volume BIGINT NOT NULL,
+  FOREIGN KEY (stock_id) REFERENCES stocks(id),
+  UNIQUE KEY unique_history (stock_id, trade_date)
+);
+
+-- Add tracking table for user stock watchlist
+CREATE TABLE IF NOT EXISTS watchlist (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  stock_id INT NOT NULL,
+  added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (stock_id) REFERENCES stocks(id),
+  UNIQUE KEY unique_watchlist_item (user_id, stock_id)
+);
