@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 获取DOM元素
     const totalValueElement = document.getElementById('total-value');
     const totalReturnElement = document.getElementById('total-return');
@@ -138,87 +138,87 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-    const axios = require('axios');
-const dotenv = require('dotenv');
+    function fetchStockInfo() {
+        console.log('开始获取股票信息数据');
+        const recentInfoList = document.getElementById('recent-info-list');
+        recentInfoList.innerHTML = '<p>加载股票数据中...</p>';
 
-dotenv.config();
+        const API_KEY = 'DK81UQ20HPA8A0WU'; // 应从环境变量获取
+        const STOCK_SYMBOLS = ['AAPL', 'MSFT']; // 测试时先减少股票数量
 
-const url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=D1G2YLAXSIE1Z2GM';
+        // 顺序请求函数
+        const fetchSequentially = async () => {
+            const results = [];
+            for (const symbol of STOCK_SYMBOLS) {
+                try {
+                    const response = await fetch(
+                        `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`
+                    );
+                    const data = await response.json();
 
-const POOL = ['AAPL','MSFT','GOOGL','AMZN','TSLA','NVDA','META','NFLX'];
-app.get('/quote/:symbol', async (req, res) => {
-  const result = [];
-  for (const symbol of POOL) {
-    try {
-      const { data } = await axios.get(url, {
-        params: { function: 'GLOBAL_QUOTE', symbol, apikey: process.env.ALPHA_KEY }
-      });
-      const q = data['Global Quote'];
-      result.push({
-        symbol,
-        price: q?.['05. price'] || null,
-        change: q?.['09. change'] || null,
-        changePercent: q?.['10. change percent'] || null
-      });
-    } catch {
-      result.push({ symbol, error: 'fetch failed' });
+                    if (data.Note) {
+                        results.push({ symbol, error: 'API限制' });
+                    } else if (!data['Global Quote']) {
+                        results.push({ symbol, error: '无效数据' });
+                    } else {
+                        results.push({
+                            symbol,
+                            data: data['Global Quote']
+                        });
+                    }
+                } catch (error) {
+                    results.push({ symbol, error: error.message });
+                }
+                await new Promise(resolve => setTimeout(resolve, 15000)); // 15秒间隔
+            }
+            return results;
+        };
+
+        fetchSequentially()
+            .then(results => {
+                console.log('获取结果:', results);
+
+                let html = '<div class="table-container"><table>';
+                html += '<thead><tr><th>股票</th><th>价格</th><th>涨跌</th><th>涨幅</th></tr></thead><tbody>';
+
+                results.forEach(item => {
+                    if (item.error) {
+                        html += `<tr>
+                        <td>${item.symbol}</td>
+                        <td colspan="3" class="error">${item.error}</td>
+                    </tr>`;
+                    } else {
+                        const q = item.data;
+                        const changeClass = parseFloat(q['09. change']) >= 0 ? 'positive' : 'negative';
+                        html += `<tr>
+                        <td>${item.symbol}</td>
+                        <td>$${q['05. price']}</td>
+                        <td class="${changeClass}">${q['09. change']}</td>
+                        <td class="${changeClass}">${q['10. change percent']}</td>
+                    </tr>`;
+                    }
+                });
+
+                html += '</tbody></table></div>';
+                recentInfoList.innerHTML = html;
+            })
+            .catch(error => {
+                recentInfoList.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            });
     }
-  }
-  res.json(result);
-});
 
-// // 2. 日线历史（Daily Time Series）
-// app.get('/history/:symbol', async (req, res) => {
-//   try {
-//     const { symbol } = req.params;
-//     const { data } = await axios.get(url, {
-//       params: {
-//         function: 'TIME_SERIES_DAILY',
-//         symbol,
-//         outputsize: 'compact', // 最近 100 天
-//         apikey: process.env.ALPHA_KEY
-//       }
-//     });
-//     res.json(data['Time Series (Daily)']);
-//   } catch (e) {
-//     res.status(500).json({ error: e.message });
-//   }
-// });
 
-// GET /history/:symbol?date=2024-07-24
-app.get('/history/:symbol', async (req, res) => {
-  try {
-    const { symbol } = req.params;
-    const { date }   = {"date":"2025-05-21"}           // 前端传 ?date=YYYY-MM-DD
-    const { data } = await axios.get(url, {
-      params: {
-        function: 'TIME_SERIES_DAILY',
-        symbol,
-        outputsize: 'compact',  // 最近 100 天
-        apikey: process.env.ALPHA_KEY
-      }
-    });
 
-    const all = data['Time Series (Daily)'];
-    if (!all) return res.status(404).json({ error: 'no data' });
-
-    // 如果指定日期，就返回单条；否则返回全部
-    const result = date ? { [date]: all[date] } : all;
-    if (date && !result[date]) return res.status(404).json({ error: 'date not found' });
-
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
 
     // 初始化数据
     fetchPortfolioOverview();
     fetchRecentAssets();
     fetchPerformanceData();
+    fetchStockInfo();
 
     // 设置定时刷新
     setInterval(fetchPortfolioOverview, 60000); // 每分钟刷新一次
     setInterval(fetchRecentAssets, 60000);
     setInterval(fetchPerformanceData, 300000); // 每5分钟刷新一次
+    setInterval(fetchStockInfo, 300000);
 });

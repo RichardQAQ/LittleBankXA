@@ -287,6 +287,41 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
   }
 });
 
+const axios = require('axios');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=DK81UQ20HPA8A0WU';
+
+
+app.get('/history/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { date }   = {"date":"2025-05-21"}           // 前端传 ?date=YYYY-MM-DD
+    const { data } = await axios.get(url, {
+      params: {
+        function: 'TIME_SERIES_DAILY',
+        symbol,
+        outputsize: 'compact',  // 最近 100 天
+        apikey: process.env.ALPHA_KEY
+      }
+    });
+
+    const all = data['Time Series (Daily)'];
+    if (!all) return res.status(404).json({ error: 'no data' });
+
+    // 如果指定日期，就返回单条；否则返回全部
+    const result = date ? { [date]: all[date] } : all;
+    if (date && !result[date]) return res.status(404).json({ error: 'date not found' });
+
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 
 
 
