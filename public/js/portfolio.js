@@ -165,4 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化加载数据
     loadPortfolioData();
+
+    // Set up auto-refresh every 60 seconds
+    setInterval(loadPortfolioData, 60000);
 });

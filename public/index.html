@@ -55,6 +55,20 @@
                     <p><small>Real Data: AAPL, MSFT, GOOGL, TSLA, AMZN</small></p>
                     <p><small>Rate Limited: 5 requests/minute</small></p>
                 </div>
+                <!-- Add this to your API status card -->
+                <div class="card">
+                    <h3>数据库状态</h3>
+                    <p id="api-status">检查中...</p>
+                    <button id="test-api-btn" class="btn" onclick="testApiConnection()">
+                        Test Alpha Vantage
+                    </button>
+                    <button id="debug-portfolio-btn" class="btn" onclick="debugPortfolio()" style="margin-top: 5px;">
+                        Debug Portfolio
+                    </button>
+                    <div id="database-controls" style="margin-top: 10px;">
+                        <!-- Initialization button will be added here if needed -->
+                    </div>
+                </div>
             </div>
         </section>
         <section id="performance">
@@ -62,8 +76,8 @@
             <canvas id="performance-chart"></canvas>
         </section>
         <section id="recent-assets">
-            <h2>最近添加的资产</h2>
-            <div id="recent-assets-list">加载中...</div>
+            <h2>Recent Stock Holdings</h2>
+            <div id="recent-assets-list">Loading stock data...</div>
         </section>
     </main>
     <footer>

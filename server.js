@@ -16,7 +16,7 @@ const apiRouter = express.Router();
 
 // 测试API
 apiRouter.get('/test', (req, res) => {
-  res.json({ message: 'API is working!' });
+  res.json({ message: 'API is working', timestamp: new Date() });
 });
 
 // 获取投资组合概览
@@ -69,34 +69,59 @@ apiRouter.get('/portfolio/overview', async (req, res) => {
 // 获取最近添加的资产
 apiRouter.get('/portfolio/recent', async (req, res) => {
   try {
-    console.log('调用 /api/portfolio/recent');
-    // 假设只有一个用户，ID为1
+    // Add debug logging to verify data freshness
+    console.log('=== PORTFOLIO/RECENT ENDPOINT CALLED ===');
+    console.log('Current time:', new Date().toISOString());
+    
+    const [lastUpdates] = await pool.query('SELECT symbol, current_price, last_updated FROM stocks ORDER BY last_updated DESC LIMIT 3');
+    console.log('Most recent stock updates:', lastUpdates);
+    
     const userId = 1;
     
-    // 获取最近5个资产
-    console.log('执行SQL查询获取最近资产');
-    const [portfolioItems] = await pool.query(
-        `(SELECT p.*, s.name, s.symbol, s.current_price, 'stock' as type
+    console.log('=== PORTFOLIO/RECENT ENDPOINT CALLED ===');
+    
+    // Modified query to get only stocks with real symbols (no bonds)
+    const [recentAssets] = await pool.query(
+      `SELECT p.*, s.symbol, s.name as stock_name, s.current_price, s.change_percent,
+              p.quantity * s.current_price as current_value,
+              (p.quantity * s.current_price) - (p.quantity * p.purchase_price) as profit_loss,
+              CASE 
+                WHEN p.purchase_price > 0 THEN ((s.current_price - p.purchase_price) / p.purchase_price) * 100
+                ELSE 0 
+              END as return_percent
        FROM portfolio p
        JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-       WHERE p.user_id = ?)
-       UNION ALL
-       (SELECT p.*, b.name, b.symbol, b.current_price, 'bond' as type
-       FROM portfolio p
-       JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-       WHERE p.user_id = ?)
-       ORDER BY purchase_date DESC
+       WHERE p.user_id = ? AND p.asset_type = 'stock'
+       ORDER BY p.purchase_date DESC
        LIMIT 5`,
-        [userId, userId]
-      );
+      [userId]
+    );
+
+    console.log(`Found ${recentAssets.length} recent assets`);
     
-    console.log('最近资产查询结果:', portfolioItems);
-    res.json({
-      assets: portfolioItems
-    });
+    // Format the response with clean stock data
+    const formattedAssets = recentAssets.map(asset => ({
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.stock_name,
+      type: 'Stock',
+      quantity: parseFloat(asset.quantity) || 0,
+      current_price: parseFloat(asset.current_price) || 0,
+      purchase_price: parseFloat(asset.purchase_price) || 0,
+      current_value: parseFloat(asset.current_value || 0),
+      profit_loss: parseFloat(asset.profit_loss || 0),
+      return_percent: parseFloat(asset.return_percent || 0),
+      purchase_date: asset.purchase_date,
+      change_percent: parseFloat(asset.change_percent || 0)
+    }));
+
+    // IMPORTANT CHANGE: Return the array directly, not in an object
+    console.log(`Returning ${formattedAssets.length} formatted assets directly as array`);
+    res.json(formattedAssets); // Return array directly
   } catch (error) {
-    console.error('获取最近资产错误:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Recent assets fetch error:', error);
+    // Return an empty array on error, not an object
+    res.status(500).json([]);
   }
 });
 
@@ -194,7 +219,7 @@ apiRouter.get('/portfolio', async (req, res) => {
     // 假设只有一个用户，ID为1
     const userId = 1;
     
-    // 获取所有资产，包括股票和债券的详细信息
+    // 获取所有资产，包括股票、债券和现金的详细信息
     console.log('执行SQL查询获取投资组合资产');
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
@@ -209,9 +234,14 @@ apiRouter.get('/portfolio', async (req, res) => {
          FROM portfolio p
          JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
          WHERE p.user_id = ?)
+        UNION ALL
+        (SELECT p.id, p.user_id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                'Cash Balance' as name, 'CASH' as symbol, 1.00 as current_price, 'cash' as type
+         FROM portfolio p
+         WHERE p.user_id = ? AND p.asset_type = 'cash')
       ) AS combined_results
-      ORDER BY purchase_date DESC`,
-      [userId, userId]
+      ORDER BY type, name`,
+      [userId, userId, userId]
     );
     
     console.log('投资组合查询结果:', portfolioItems);
@@ -258,7 +288,7 @@ apiRouter.post('/portfolio', async (req, res) => {
       } else {
         // 债券不存在，创建新债券
         const [result] = await pool.query(
-          'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current_price) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current_price) VALUES (?, ?, ?, ?, ?, ?)', 
           [symbol, name, faceValue, couponRate, maturityDate, purchasePrice] // 假设当前价格等于购买价格
         );
         assetId = result.insertId;
@@ -461,6 +491,74 @@ apiRouter.get('/debug/database-status', async (req, res) => {
   } catch (error) {
     console.error('testdb_t4 status check error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Add debug endpoint to check portfolio data
+apiRouter.get('/debug/portfolio-check', async (req, res) => {
+  try {
+    const userId = 1;
+    
+    // Check if user exists
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    
+    // Check stocks count
+    const [stocksCount] = await pool.query('SELECT COUNT(*) as count FROM stocks');
+    
+    // Check portfolio count
+    const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = ?', [userId]);
+    
+    // Get sample portfolio data
+    const [portfolioData] = await pool.query(
+      'SELECT * FROM portfolio WHERE user_id = ? LIMIT 3', 
+      [userId]
+    );
+    
+    // Get sample stocks data
+    const [stocksData] = await pool.query('SELECT * FROM stocks LIMIT 3');
+    
+    res.json({
+      user_exists: users.length > 0,
+      stocks_count: stocksCount[0].count,
+      portfolio_count: portfolioCount[0].count,
+      sample_portfolio: portfolioData,
+      sample_stocks: stocksData,
+      database: 'testdb_t4'
+    });
+  } catch (error) {
+    console.error('Portfolio check error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add this simple test endpoint to server.js
+apiRouter.get('/test-portfolio', async (req, res) => {
+  try {
+    console.log('Test portfolio endpoint called');
+    
+    // Simple test data
+    const testData = [
+      {
+        id: 1,
+        symbol: 'TEST',
+        name: 'Test Stock',
+        type: 'Stock',
+        quantity: 10,
+        current_price: 100.00,
+        purchase_price: 95.00,
+        current_value: 1000.00,
+        profit_loss: 50.00,
+        return_percent: 5.26,
+        purchase_date: '2024-01-01',
+        change_percent: 1.5
+      }
+    ];
+    
+    console.log('Returning test data:', testData);
+    res.json(testData);
+  } catch (error) {
+    console.error('Test portfolio error:', error);
+    res.status(500).json([]);
   }
 });
 

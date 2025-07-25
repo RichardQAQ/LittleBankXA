@@ -188,8 +188,9 @@ async function updatePrices() {
             console.log(`Updated ${data.updated} prices out of ${data.total} tickers`);
             showMessage(`Successfully updated ${data.updated} stock prices`, 'success');
             
-            // Refresh data if functions are available
+            // Refresh ALL data including recent stock holdings
             if (window.fetchPortfolioOverview) await window.fetchPortfolioOverview();
+            if (window.fetchRecentAssets) await window.fetchRecentAssets(); // Add this line
             if (window.fetchPerformanceData) await window.fetchPerformanceData();
             if (window.fetchMarketStatus) await window.fetchMarketStatus();
         } else {
@@ -276,6 +277,53 @@ async function checkDatabaseStatus() {
     }
 }
 
+// Add this function to dashboard.js if not already present
+async function ensureRealStockData() {
+    try {
+        const status = await apiClient.get('/debug/database-status');
+        
+        if (status.needs_initialization || status.stocks_count === 0) {
+            console.log('No real stock data found, initializing...');
+            await initializeRealData();
+        }
+    } catch (error) {
+        console.error('Failed to check stock data:', error);
+    }
+}
+
+// Add debug function
+async function debugPortfolio() {
+    try {
+        console.log('🔍 Debugging portfolio data...');
+        
+        const debugData = await apiClient.get('/debug/portfolio-check');
+        console.log('Debug data:', debugData);
+        
+        const recentData = await apiClient.get('/portfolio/recent');
+        console.log('Recent assets data:', recentData);
+        console.log('Recent data type:', typeof recentData);
+        console.log('Is recent data array:', Array.isArray(recentData));
+        
+        const message = `Debug Results:
+- User exists: ${debugData.user_exists}
+- Stocks in DB: ${debugData.stocks_count}
+- Portfolio items: ${debugData.portfolio_count}
+- Recent data type: ${typeof recentData}
+- Is array: ${Array.isArray(recentData)}
+- Recent items count: ${recentData?.length || 'undefined'}
+
+Check console for detailed data.`;
+        
+        alert(message);
+    } catch (error) {
+        console.error('Debug failed:', error);
+        alert('Debug failed: ' + error.message);
+    }
+}
+
+// Make debug function available globally
+window.debugPortfolio = debugPortfolio;
+
 // Make functions globally available
 window.testApiConnection = testApiConnection;
 window.monitorApiCalls = monitorApiCalls;
@@ -360,55 +408,120 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Get recent assets
+    // Update the fetchRecentAssets function with better debugging
     async function fetchRecentAssets() {
         try {
-            console.log('Fetching recent assets...');
-            const data = await apiClient.get('/portfolio/recent');
+            console.log('🔍 Fetching recent stock assets...');
             
-            if (data.error) {
-                throw new Error(data.error);
+            // First test if API is reachable
+            const testResponse = await fetch('/api/test');
+            if (!testResponse.ok) {
+                throw new Error('API server not responding');
             }
             
+            // Now try the actual portfolio endpoint
+            const response = await fetch('/api/portfolio/recent');
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received data:', data);
+            console.log('Data type:', typeof data);
+            console.log('Is array:', Array.isArray(data));
+            
+            const recentAssetsList = document.getElementById('recent-assets-list');
             if (!recentAssetsList) {
-                console.warn('Recent assets list element not found');
+                console.error('Recent assets list element not found');
                 return;
             }
-            
-            if (!data.assets || data.assets.length === 0) {
-                recentAssetsList.innerHTML = '<p>暂无资产</p>';
+
+            // Check if data is valid array
+            if (!data || !Array.isArray(data)) {
+                console.error('Invalid data format received:', data);
+                recentAssetsList.innerHTML = `
+                    <div class="asset-item error">
+                        <p>Invalid data format received from server.</p>
+                        <p><small>Received: ${typeof data} - ${JSON.stringify(data).substring(0, 100)}...</small></p>
+                        <button onclick="debugApiResponse()" class="btn">Debug API</button>
+                        <button onclick="initializeRealData()" class="btn">Initialize Real Data</button>
+                    </div>
+                `;
                 return;
             }
-            
-            let html = '<div class="table-container"><table>';
-            html += '<thead><tr><th>资产名称</th><th>类型</th><th>数量</th><th>购买价格</th><th>当前价格</th><th>盈亏</th></tr></thead>';
-            html += '<tbody>';
-            
-            data.assets.forEach(asset => {
-                const currentPrice = parseFloat(asset.current_price || 0);
-                const purchasePrice = parseFloat(asset.purchase_price || 0);
-                const quantity = parseFloat(asset.quantity || 0);
-                const profitLoss = ((currentPrice - purchasePrice) * quantity).toFixed(2);
-                const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
+
+            if (data.length === 0) {
+                recentAssetsList.innerHTML = `
+                    <div class="asset-item">
+                        <p>No stock holdings found in testdb_t4.</p>
+                        <button onclick="initializeRealData()" class="btn">Add Real Stock Data</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Create HTML for recent stock assets
+            const assetsHtml = data.map(asset => {
+                // Add safety checks for all properties
+                const symbol = asset.symbol || 'Unknown';
+                const quantity = asset.quantity || 0;
+                const currentPrice = asset.current_price || 0;
+                const purchasePrice = asset.purchase_price || 0;
+                const currentValue = asset.current_value || 0;
+                const profitLoss = asset.profit_loss || 0;
+                const returnPercent = asset.return_percent || 0;
+                const changePercent = asset.change_percent || 0;
+                const purchaseDate = asset.purchase_date || new Date().toISOString();
                 
-                html += `<tr>
-                    <td>${asset.name || 'N/A'}</td>
-                    <td>${asset.type === 'stock' ? '股票' : '债券'}</td>
-                    <td>${quantity}</td>
-                    <td>¥${purchasePrice.toFixed(2)}</td>
-                    <td>¥${currentPrice.toFixed(2)}</td>
-                    <td class="${profitLossClass}">¥${profitLoss}</td>
-                </tr>`;
-            });
-            
-            html += '</tbody></table></div>';
-            recentAssetsList.innerHTML = html;
-            
-            console.log('Recent assets updated successfully');
+                const profitClass = profitLoss >= 0 ? 'profit' : 'loss';
+                const changeClass = changePercent >= 0 ? 'positive' : 'negative';
+                const changeSymbol = changePercent >= 0 ? '+' : '';
+                
+                return `
+                    <div class="asset-item">
+                        <div class="asset-header">
+                            <h4>${symbol}</h4>
+                            <span class="asset-type">Stock</span>
+                        </div>
+                        <div class="asset-details">
+                            <div class="asset-info">
+                                <p><strong>Quantity:</strong> ${quantity} shares</p>
+                                <p><strong>Current Price:</strong> $${currentPrice.toFixed(2)}</p>
+                                <p><strong>Purchase Price:</strong> $${purchasePrice.toFixed(2)}</p>
+                                <p><strong>Current Value:</strong> $${currentValue.toFixed(2)}</p>
+                            </div>
+                            <div class="asset-performance">
+                                <p class="${profitClass}">
+                                    <strong>P&L:</strong> $${profitLoss.toFixed(2)} 
+                                    (${returnPercent.toFixed(2)}%)
+                                </p>
+                                <p class="${changeClass}">
+                                    <strong>Today:</strong> ${changeSymbol}${changePercent.toFixed(2)}%
+                                </p>
+                                <p><strong>Purchased:</strong> ${new Date(purchaseDate).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            recentAssetsList.innerHTML = assetsHtml;
+            console.log(`✅ Loaded ${data.length} recent stock assets`);
         } catch (error) {
             console.error('Failed to fetch recent assets:', error);
+            const recentAssetsList = document.getElementById('recent-assets-list');
             if (recentAssetsList) {
-                recentAssetsList.innerHTML = '<div class="error-message">获取最近资产失败: ' + error.message + '</div>';
+                recentAssetsList.innerHTML = `
+                    <div class="asset-item error">
+                        <p>Failed to load recent assets: ${error.message}</p>
+                        <button onclick="fetchRecentAssets()" class="btn">Retry</button>
+                        <button onclick="debugApiResponse()" class="btn">Debug API</button>
+                        <button onclick="initializeRealData()" class="btn">Initialize Data</button>
+                    </div>
+                `;
             }
         }
     }
@@ -471,6 +584,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(fetchRecentAssets, 200);
     setTimeout(fetchPerformanceData, 300);
     setTimeout(fetchMarketStatus, 400);
+    setTimeout(ensureRealStockData, 500);
+    setTimeout(fetchRecentAssets, 2000);
 
     // Set up intervals
     setInterval(fetchPortfolioOverview, 60000); // Every minute
@@ -489,3 +604,72 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Dashboard initialization complete');
 });
+
+// Enhanced debug function
+async function debugApiResponse() {
+    try {
+        console.log('🔍 Complete API test starting...');
+        
+        // Test each critical endpoint
+        const endpoints = [
+            '/api/test',
+            '/api/debug/database-status',
+            '/api/portfolio/recent',
+            '/api/portfolio/overview',
+            '/api/debug/portfolio-check'
+        ];
+        
+        console.log('Testing all endpoints...');
+        
+        for (const endpoint of endpoints) {
+            try {
+                console.log(`Testing endpoint: ${endpoint}`);
+                const response = await fetch(endpoint);
+                console.log(`Status for ${endpoint}: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    try {
+                        const text = await response.text();
+                        console.log(`Raw response from ${endpoint}:`, text.substring(0, 200) + '...');
+                        
+                        try {
+                            const json = JSON.parse(text);
+                            console.log(`Parsed JSON from ${endpoint}:`, json);
+                            console.log(`Type: ${typeof json}, Is array: ${Array.isArray(json)}`);
+                            
+                            if (endpoint === '/api/portfolio/recent') {
+                                // Special handling for the problematic endpoint
+                                if (Array.isArray(json)) {
+                                    console.log('✅ Recent endpoint returns array directly - GOOD');
+                                } else if (json && Array.isArray(json.assets)) {
+                                    console.log('⚠️ Recent endpoint returns {assets:[...]} - needs modification');
+                                } else {
+                                    console.log('❌ Recent endpoint returns invalid format');
+                                }
+                            }
+                        } catch (parseError) {
+                            console.error(`JSON parse error for ${endpoint}:`, parseError);
+                        }
+                    } catch (textError) {
+                        console.error(`Text parse error for ${endpoint}:`, textError);
+                    }
+                } else {
+                    console.error(`Endpoint ${endpoint} failed with status: ${response.status}`);
+                }
+            } catch (endpointError) {
+                console.error(`Request to ${endpoint} failed:`, endpointError);
+            }
+            
+            // Brief pause between requests
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        alert('API debugging complete - check console for details');
+    } catch (error) {
+        console.error('Debug API test failed:', error);
+        alert('Debug failed: ' + error.message);
+    }
+}
+
+// Make it globally available
+window.debugApiResponse = debugApiResponse;
