@@ -3,6 +3,8 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const path = require('path');
+const priceService = require('./services/priceService');
+const cron = require('node-cron');
 
 // 中间件
 app.use(express.json());
@@ -101,33 +103,66 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
 // 获取投资组合表现数据
 apiRouter.get('/portfolio/performance', async (req, res) => {
   try {
-    // 这里简化处理，返回模拟数据
-    // 实际应用中应该根据历史数据计算
+    const userId = 1;
+    
+    // Get current portfolio value using real prices
+    const [portfolioItems] = await pool.query(
+      `SELECT p.*, s.current_price as stock_price, b.current_price as bond_price,
+              s.symbol as stock_symbol, b.symbol as bond_symbol
+       FROM portfolio p
+       LEFT JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
+       LEFT JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
+       WHERE p.user_id = ?`,
+      [userId]
+    );
+
+    // Calculate current portfolio value
+    let currentValue = 0;
+    portfolioItems.forEach(item => {
+      if (item.asset_type === 'cash') {
+        currentValue += item.quantity; // Cash at face value
+      } else {
+        const currentPrice = item.asset_type === 'stock' ? item.stock_price : item.bond_price;
+        if (currentPrice) {
+          currentValue += currentPrice * item.quantity;
+        }
+      }
+    });
+
+    // Generate realistic historical data
     const dates = [];
     const values = [];
-    
-    // 生成过去30天的日期和模拟价值
     const today = new Date();
+    
+    // Start with a base value 30 days ago (assume 3% monthly growth)
+    const baseValue = currentValue * 0.97;
+    
     for (let i = 30; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       dates.push(date.toISOString().split('T')[0]);
       
-      // 模拟价值，起始值为10000，每天随机波动
       if (i === 30) {
-        values.push(10000);
+        values.push(baseValue);
+      } else if (i === 0) {
+        values.push(currentValue);
       } else {
-        const lastValue = values[values.length - 1];
-        const change = lastValue * (Math.random() * 0.02 - 0.01); // -1% 到 +1% 的波动
-        values.push(lastValue + change);
+        const progress = (30 - i) / 30;
+        const interpolatedValue = baseValue + (currentValue - baseValue) * progress;
+        const variation = interpolatedValue * (Math.random() * 0.04 - 0.02);
+        values.push(Math.max(0, interpolatedValue + variation));
       }
     }
-    
+
     res.json({
       dates: dates,
-      values: values
+      values: values,
+      currentValue: currentValue,
+      baseValue: baseValue,
+      lastUpdated: new Date()
     });
   } catch (error) {
+    console.error('Portfolio performance calculation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -287,16 +322,171 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
   }
 });
 
+// Manual price update endpoint
+apiRouter.post('/prices/update', async (req, res) => {
+  try {
+    console.log('Manual price update requested');
+    const result = await priceService.updateAllStockPrices();
+    res.json(result);
+  } catch (error) {
+    console.error('Manual price update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get price service status
+apiRouter.get('/prices/status', (req, res) => {
+  try {
+    const status = priceService.getStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('Price status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test external API connectivity
+apiRouter.get('/prices/test', async (req, res) => {
+  try {
+    const testResult = await priceService.fetchSinglePrice('AAPL');
+    res.json({
+      success: testResult !== null,
+      data: testResult,
+      message: testResult ? 'API connectivity successful' : 'API connectivity failed'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Replace the existing debug endpoints with Alpha Vantage testing
+apiRouter.get('/debug/api-status', async (req, res) => {
+  try {
+    // Test Alpha Vantage connection
+    const testResult = await priceService.fetchSinglePrice('AAPL');
+    
+    // Test database connection
+    const [dbTest] = await pool.query('SELECT COUNT(*) as count FROM stocks');
+    
+    res.json({
+      alphavantage: {
+        connected: testResult !== null,
+        data: testResult,
+        timestamp: new Date(),
+        source: testResult?.source || 'failed'
+      },
+      database: {
+        connected: true,
+        stocks_count: dbTest[0].count
+      },
+      server_status: 'running',
+      api_source: 'Alpha Vantage'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      alphavantage: { connected: false },
+      database: { connected: false }
+    });
+  }
+});
+
+apiRouter.get('/debug/fetch-test', async (req, res) => {
+  try {
+    const ticker = req.query.ticker || 'AAPL';
+    
+    console.log(`Testing Alpha Vantage fetch for ${ticker}...`);
+    const result = await priceService.fetchSinglePrice(ticker);
+    
+    res.json({
+      success: result !== null,
+      ticker: ticker,
+      data: result,
+      message: result ? 'Alpha Vantage fetch successful' : 'Alpha Vantage fetch failed',
+      api_source: 'Alpha Vantage'
+    });
+  } catch (error) {
+    console.error('Debug fetch test error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add symbol search endpoint
+apiRouter.get('/debug/search/:keywords', async (req, res) => {
+  try {
+    const keywords = req.params.keywords;
+    const results = await priceService.searchSymbol(keywords);
+    
+    res.json({
+      success: true,
+      keywords: keywords,
+      results: results,
+      count: results.length
+    });
+  } catch (error) {
+    console.error('Symbol search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add these after the existing debug endpoints
+
+// Initialize testdb_t4 database with real Alpha Vantage data
+apiRouter.post('/debug/init-real-data', async (req, res) => {
+  try {
+    console.log('testdb_t4 initialization with real data requested');
+    const result = await priceService.initializeDatabaseWithRealData();
+    res.json(result);
+  } catch (error) {
+    console.error('testdb_t4 initialization error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if testdb_t4 database needs initialization
+apiRouter.get('/debug/database-status', async (req, res) => {
+  try {
+    const [stockCount] = await pool.query('SELECT COUNT(*) as count FROM stocks');
+    const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = 1');
+    
+    const needsInitialization = stockCount[0].count === 0 || portfolioCount[0].count === 0;
+    
+    res.json({
+      database: 'testdb_t4',
+      stocks_count: stockCount[0].count,
+      portfolio_items: portfolioCount[0].count,
+      needs_initialization: needsInitialization,
+      database_status: needsInitialization ? 'Empty - Ready for real data' : 'Contains data'
+    });
+  } catch (error) {
+    console.error('testdb_t4 status check error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 挂载API路由
 app.use('/api', apiRouter);
 
-// 前端路由 - 使用try-catch包装
-app.get('*', (req, res) => {
-  try {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } catch (error) {
-    console.error('前端路由错误:', error);
-    res.status(404).send('Not Found');
+// ONLY serve index.html for non-API routes (FIXED)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve other HTML files specifically
+app.get('/portfolio', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portfolio.html'));
+});
+
+app.get('/add_asset', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'add_asset.html'));
+});
+
+// Handle 404 for unknown routes (but not API routes)
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'API endpoint not found' });
+  } else {
+    res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
   }
 });
 
@@ -305,3 +495,16 @@ app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   console.log('数据库连接成功');
 });
+
+// Add scheduled price updates
+cron.schedule('*/15 * * * *', async () => {
+  const status = priceService.getStatus();
+  if (status.isMarketOpen) {
+    console.log('Scheduled price update starting...');
+    await priceService.updateAllStockPrices();
+  } else {
+    console.log('Market closed, skipping scheduled price update');
+  }
+});
+
+console.log('Price update scheduler started (every 15 minutes during market hours)');

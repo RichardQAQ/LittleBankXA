@@ -30,6 +30,31 @@
                     <h3>总收益率</h3>
                     <p id="total-return">加载中...</p>
                 </div>
+                <!-- NEW: Market Status Card -->
+                <div class="card">
+                    <h3>市场状态</h3>
+                    <p id="market-status">加载中...</p>
+                </div>
+                <!-- NEW: API Connection Card -->
+                <div class="card">
+                    <h3>API状态</h3>
+                    <p id="api-status">检查中...</p>
+                    <button id="test-api-btn" class="btn" onclick="testApiConnection()">
+                        Test API
+                    </button>
+                </div>
+                <!-- Update the price update card -->
+                <div class="card">
+                    <h3>实时价格 (Alpha Vantage)</h3>
+                    <button id="update-prices-btn" class="btn" onclick="updatePrices()">
+                        Update Prices
+                    </button>
+                    <button id="search-symbol-btn" class="btn" onclick="searchSymbol()" style="margin-top: 5px;">
+                        Search Symbol
+                    </button>
+                    <p><small>Real Data: AAPL, MSFT, GOOGL, TSLA, AMZN</small></p>
+                    <p><small>Rate Limited: 5 requests/minute</small></p>
+                </div>
             </div>
         </section>
         <section id="performance">

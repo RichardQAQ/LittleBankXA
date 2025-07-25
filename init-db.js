@@ -10,13 +10,13 @@ async function initDatabase() {
 
     // 创建数据库
     console.log('尝试创建数据库...');
-    await pool.query('CREATE DATABASE IF NOT EXISTS investment_system');
-    console.log('数据库创建成功或已存在');
+    await pool.query('CREATE DATABASE IF NOT EXISTS testdb_t4');
+    console.log('数据库 testdb_t4 创建成功或已存在');
 
     // 选择数据库
     console.log('尝试选择数据库...');
-    await pool.query('USE investment_system');
-    console.log('数据库选择成功');
+    await pool.query('USE testdb_t4');
+    console.log('数据库 testdb_t4 选择成功');
 
     // 创建用户表
     await pool.query(`
@@ -68,40 +68,8 @@ async function initDatabase() {
       )
     `);
 
-    // 读取并执行测试数据SQL文件
-    const fs = require('fs');
-    const path = require('path');
-    const sqlFilePath = path.join(__dirname, 'data', 'insert_test_data.sql');
-    let sql = fs.readFileSync(sqlFilePath, 'utf8');
-    
-    // 清除注释和空行
-    sql = sql.replace(/--.*$/gm, '').replace(/\n\s*\n/g, '\n');
-    
-    // 分割SQL语句
-    const sqlStatements = sql.split(';').filter(statement => statement.trim() !== '');
-    
-    // 执行SQL语句
-    const conn = await pool.getConnection();
-    
-    // 先清空表数据
-    await conn.query('DELETE FROM portfolio');
-    await conn.query('DELETE FROM stocks');
-    await conn.query('DELETE FROM bonds');
-    await conn.query('DELETE FROM users');
-    
-    // 重新设置自增ID
-    await conn.query('ALTER TABLE users AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE stocks AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE bonds AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE portfolio AUTO_INCREMENT = 1');
-    
-    // 插入测试数据
-    for (const statement of sqlStatements) {
-      await conn.query(statement);
-    }
-    conn.release();
-    console.log('测试数据插入成功');
-    console.log('数据库初始化成功');
+    console.log('所有表创建成功');
+    console.log('数据库 testdb_t4 初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);
   } finally {
