@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
         data: {
             labels: [],
             datasets: [{
-                label: '投资组合价值',
+                label: 'Portfolio Value',
                 data: [],
                 borderColor: '#3498db',
                 backgroundColor: 'rgba(52, 152, 219, 0.1)',
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 title: {
                     display: true,
-                    text: '投资组合表现历史'
+                    text: 'Portfolio Performance History'
                 }
             },
             scales: {
@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     beginAtZero: false,
                     title: {
                         display: true,
-                        text: '价值 (元)'
+                        text: 'Value ($)'
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: '日期'
+                        text: 'Date'
                     }
                 }
             }
@@ -52,48 +52,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 获取投资组合概览数据
     function fetchPortfolioOverview() {
-        console.log('开始获取投资组合概览数据');
+        console.log('Fetching portfolio overview data...');
         fetch('/api/portfolio/overview')
             .then(response => {
-                console.log('概览数据响应状态:', response.status);
+                console.log('Overview data response status:', response.status);
                 console.log('概览数据响应头:', response.headers);
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    totalValueElement.textContent = '错误';
-                    totalReturnElement.textContent = '错误';
-                    console.error('获取概览数据失败:', data.error);
+                    totalValueElement.textContent = 'Error';
+                    totalReturnElement.textContent = 'Error';
+                    console.error('Failed to fetch overview data:', data.error);
                 } else {
-                    totalValueElement.textContent = '¥' + data.totalValue.toFixed(2);
+                    totalValueElement.textContent = '$' + data.totalValue.toFixed(2);
                     totalReturnElement.textContent = data.totalReturn.toFixed(2) + '%';
                 }
             })
             .catch(error => {
-                totalValueElement.textContent = '加载失败';
-                totalReturnElement.textContent = '加载失败';
-                console.error('获取概览数据时发生错误:', error);
+                totalValueElement.textContent = 'Load failed';
+                totalReturnElement.textContent = 'Load failed';
+                console.error('Error fetching overview data:', error);
             });
     }
 
     // 获取最近添加的资产
     function fetchRecentAssets() {
-        console.log('开始获取最近资产数据');
+        console.log('Fetching recent assets data...');
         fetch('/api/portfolio/recent')
             .then(response => {
-                console.log('最近资产响应状态:', response.status);
+                console.log('Recent assets response status:', response.status);
                 console.log('最近资产响应头:', response.headers);
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    recentAssetsList.innerHTML = '<div class="error-message">获取最近资产失败: ' + data.error + '</div>';
-                    console.error('获取最近资产失败:', data.error);
+                    recentAssetsList.innerHTML = '<div class="error-message">Failed to fetch recent assets: ' + data.error + '</div>';
+                    console.error('Failed to fetch recent assets:', data.error);
                 } else if (data.assets.length === 0) {
-                    recentAssetsList.innerHTML = '<p>暂无资产</p>';
+                    recentAssetsList.innerHTML = '<p>No assets found.</p>';
                 } else {
                     let html = '<div class="table-container"><table>';
-                    html += '<thead><tr><th>资产名称</th><th>类型</th><th>数量</th><th>购买价格</th><th>当前价格</th><th>盈亏</th></tr></thead>';
+                    html += '<thead><tr><th>Asset Name</th><th>Type</th><th>Quantity</th><th>Purchase Price</th><th>Current Price</th><th>P/L</th></tr></thead>';
                     html += '<tbody>';
                     data.assets.forEach(asset => {
                         const currentPrice = parseFloat(asset.current_price);
@@ -102,11 +102,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
                         html += `<tr>
                             <td>${asset.name}</td>
-                            <td>${asset.type === 'stock' ? '股票' : '债券'}</td>
+                            <td>${asset.type === 'stock' ? 'Stock' : 'Bond'}</td>
                             <td>${asset.quantity}</td>
-                            <td>¥${purchasePrice.toFixed(2)}</td>
-                            <td>¥${currentPrice.toFixed(2)}</td>
-                            <td class="${profitLossClass}">¥${profitLoss}</td>
+                            <td>$${purchasePrice.toFixed(2)}</td>
+                            <td>$${currentPrice.toFixed(2)}</td>
+                            <td class="${profitLossClass}">$${profitLoss}</td>
                         </tr>`;
                     });
                     html += '</tbody></table></div>';
@@ -114,8 +114,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .catch(error => {
-                recentAssetsList.innerHTML = '<div class="error-message">获取最近资产时发生错误</div>';
-                console.error('获取最近资产时发生错误:', error);
+                recentAssetsList.innerHTML = '<div class="error-message">Error fetching recent assets.</div>';
+                console.error('Error fetching recent assets:', error);
             });
     }
 
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    console.error('获取表现数据失败:', data.error);
+                    console.error('Failed to fetch performance data:', data.error);
                 } else {
                     performanceChart.data.labels = data.dates;
                     performanceChart.data.datasets[0].data = data.values;
@@ -133,15 +133,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .catch(error => {
-                console.error('获取表现数据时发生错误:', error);
+                console.error('Error fetching performance data:', error);
             });
     }
 
 
     function fetchStockInfo() {
-        console.log('开始获取股票信息数据');
+        console.log('Fetching stock information...');
         const recentInfoList = document.getElementById('recent-info-list');
-        recentInfoList.innerHTML = '<p>加载股票数据中...</p>';
+        recentInfoList.innerHTML = '<p>Loading stock data...</p>';
 
         const API_KEY = 'DK81UQ20HPA8A0WU'; // 应从环境变量获取
         const STOCK_SYMBOLS = ['AAPL', 'MSFT']; // 测试时先减少股票数量
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchPortfolioOverview();
     fetchRecentAssets();
     fetchPerformanceData();
-    fetchStockInfo();
+    // fetchStockInfo(); // This should be handled by the backend price service now
     initializeStockSearch();
     fetchWatchlist();
 
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(fetchPortfolioOverview, 60000); // 每分钟刷新一次
     setInterval(fetchRecentAssets, 60000);
     setInterval(fetchPerformanceData, 300000); // 每5分钟刷新一次
-    setInterval(fetchStockInfo, 300000);
+    // setInterval(fetchStockInfo, 300000);
     setInterval(fetchWatchlist, 60000);
 });
 
@@ -285,7 +285,7 @@ async function updatePrices() {
             if (window.fetchPortfolioOverview) await window.fetchPortfolioOverview();
             if (window.fetchRecentAssets) await window.fetchRecentAssets();
             if (window.fetchPerformanceData) await window.fetchPerformanceData();
-            if (window.fetchStockInfo) await window.fetchStockInfo();
+            // if (window.fetchStockInfo) await window.fetchStockInfo();
             
             alert(`Successfully updated ${data.updated} stock prices in database.`);
         } else {

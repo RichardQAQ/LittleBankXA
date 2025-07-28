@@ -1,225 +1,218 @@
 const axios = require('axios');
 const pool = require('../db');
 
-class AlphaVantageService {
+class YahooFinanceService {
   constructor() {
-    this.apiKey = 'DK81UQ20HPA8A0WU'; // Primary key
-    this.fallbackApiKey = '9ZRZOFP1CUIWPRYQ'; // Fallback key
-    this.baseUrl = 'https://www.alphavantage.co/query';
+    this.apiKey = '762262b167mshf5fc58542fa213ap1277ebjsn881b2caee433';
+    this.apiHost = 'yahoo-finance15.p.rapidapi.com';
+    this.baseUrl = `https://${this.apiHost}/api/v1/markets`;
+    
     this.availableTickers = [
       'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA',
       'NVDA', 'META', 'NFLX', 'ORCL', 'INTC'
-    ];
+    ].filter(t => t && typeof t === 'string');
+
     this.lastUpdate = new Date();
-    this.requestCount = 0;
-    this.maxRequestsPerMinute = 5;
-    
-    // Configure axios with defaults
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      timeout: 10000
+  }
+
+  parseFloatFromString(value) {
+    if (typeof value !== 'string') return null;
+    const cleanedValue = value.replace(/[\$,\+%]/g, '');
+    const number = parseFloat(cleanedValue);
+    return isNaN(number) ? null : number;
+  }
+
+  /**
+   * Fetches real-time price data by making individual API calls for each ticker.
+   * This is more robust against APIs that don't support batch requests.
+   */
+  async fetchRealTimePrice(tickers) {
+    const cleanTickers = (Array.isArray(tickers) ? tickers : [tickers])
+      .filter(t => t && typeof t === 'string' && t.trim() !== '');
+
+    if (cleanTickers.length === 0) {
+      console.warn('fetchRealTimePrice was called, but no valid tickers remained after cleaning.');
+      return [];
+    }
+
+    console.log(`Fetching prices for ${cleanTickers.length} tickers individually...`);
+
+    // Create an array of promises, one for each API call
+    const promises = cleanTickers.map(ticker => {
+      const options = {
+        method: 'GET',
+        url: `${this.baseUrl}/quote`,
+        params: { ticker: ticker, type: 'STOCKS' }, // Single ticker per request
+        headers: {
+          'x-rapidapi-key': this.apiKey,
+          'x-rapidapi-host': this.apiHost,
+        },
+        timeout: 15000,
+      };
+      return axios.request(options);
     });
-  }
-  
-  // Real-time price fetch method
-  async fetchRealTimePrice(ticker) {
+
     try {
-      console.log(`Fetching real-time price for ${ticker}...`);
-      
-      // Check rate limits
-      if (this.requestCount >= this.maxRequestsPerMinute) {
-        console.log('Rate limit reached, using fallback key');
-        this.apiKey = this.fallbackApiKey;
-        this.requestCount = 0;
-      }
-      
-      const response = await this.client.get('', {
-        params: {
-          function: 'GLOBAL_QUOTE',
-          symbol: ticker,
-          apikey: this.apiKey
-        }
-      });
-      
-      this.requestCount++;
-      
-      const data = response.data;
-      if (data['Global Quote']) {
-        const quote = data['Global Quote'];
-        return {
-          symbol: ticker,
-          current_price: parseFloat(quote['05. price']),
-          change_percent: parseFloat(quote['10. change percent'].replace('%', '')),
-          last_updated: new Date()
-        };
-      } else {
-        console.error(`Invalid response for ${ticker}:`, data);
-        return null;
-      }
-    } catch (error) {
-      console.error(`Error fetching price for ${ticker}:`, error.message);
-      return null;
-    }
-  }
-  
-  // Add this method to your priceService.js file
-  async fetchSinglePrice(symbol) {
-    // This is just a wrapper for the existing method
-    return await this.fetchRealTimePrice(symbol);
-  }
-  
-  // Update database with fresh price data
-  async updateStockInDatabase(stockData) {
-    if (!stockData) return false;
-    
-    try {
-      console.log(`Updating ${stockData.symbol} in testdb_t4 database...`);
-      
-      // Check if stock exists
-      const [existingStock] = await pool.query(
-        'SELECT id FROM stocks WHERE symbol = ?',
-        [stockData.symbol]
-      );
-      
-      if (existingStock.length > 0) {
-        // Update existing stock
-        await pool.query(
-          `UPDATE stocks 
-           SET current_price = ?, 
-               change_percent = ?, 
-               last_updated = NOW() 
-           WHERE symbol = ?`,
-          [
-            stockData.current_price,
-            stockData.change_percent,
-            stockData.symbol
-          ]
-        );
-        console.log(`✅ Updated ${stockData.symbol} in database: $${stockData.current_price}`);
-        return true;
-      } else {
-        // Insert new stock
-        await pool.query(
-          `INSERT INTO stocks (symbol, name, current_price, change_percent) 
-           VALUES (?, ?, ?, ?)`,
-          [
-            stockData.symbol,
-            `${stockData.symbol} Corporation`,
-            stockData.current_price,
-            stockData.change_percent
-          ]
-        );
-        console.log(`✅ Inserted ${stockData.symbol} into database: $${stockData.current_price}`);
-        return true;
-      }
-    } catch (error) {
-      console.error(`Error updating database for ${stockData.symbol}:`, error.message);
-      return false;
-    }
-  }
-  
-  // Update all stock prices in the database
-  async updateAllStockPrices() {
-    try {
-      console.log('🔄 Starting batch update of all stock prices...');
-      const startTime = new Date();
-      let successCount = 0;
-      let errorCount = 0;
-      
-      // Get existing stocks from database
-      const [existingStocks] = await pool.query('SELECT symbol FROM stocks');
-      const dbSymbols = existingStocks.map(stock => stock.symbol);
-      
-      // Combine database symbols with available tickers
-      const allSymbols = [...new Set([...dbSymbols, ...this.availableTickers])];
-      
-      // Limit to 3 for demo (avoid rate limits)
-      const symbolsToUpdate = allSymbols.slice(0, 3);
-      
-      console.log(`📊 Updating prices for: ${symbolsToUpdate.join(', ')}`);
-      
-      for (const symbol of symbolsToUpdate) {
-        try {
-          // CHANGE THIS LINE - Use fetchRealTimePrice instead of fetchSinglePrice
-          const priceData = await this.fetchRealTimePrice(symbol);
-          
-          if (priceData) {
-            // Update database with fresh data
-            const [updateResult] = await pool.query(
-              `UPDATE stocks 
-               SET current_price = ?, 
-                   change_percent = ?, 
-                   last_updated = NOW() 
-               WHERE symbol = ?`,
-              [
-                priceData.current_price,
-                priceData.change_percent,
-                symbol
-              ]
-            );
+      // Use Promise.allSettled to wait for all requests, even if some fail
+      const responses = await Promise.allSettled(promises);
+      const allParsedData = [];
+
+      responses.forEach((response, index) => {
+        const ticker = cleanTickers[index];
+        if (response.status === 'fulfilled') {
+          const responseData = response.value.data;
+          let results = responseData.body || responseData;
+          if (!Array.isArray(results)) {
+            results = [results];
+          }
+
+          if (results && results.length > 0) {
+            const parsedData = results.map(quote => {
+              if (quote && quote.primaryData && quote.primaryData.lastSalePrice) {
+                return {
+                  symbol: quote.symbol,
+                  name: quote.companyName || quote.shortName || quote.symbol,
+                  current_price: this.parseFloatFromString(quote.primaryData.lastSalePrice),
+                  change_percent: this.parseFloatFromString(quote.primaryData.percentageChange),
+                  last_updated: new Date(),
+                };
+              }
+              return null;
+            }).filter(item => item && item.current_price !== null);
             
-            if (updateResult.affectedRows > 0) {
-              successCount++;
-              console.log(`✅ Updated ${symbol} in database: $${priceData.current_price}`);
+            if (parsedData.length > 0) {
+              console.log(`✅ Successfully fetched data for ${ticker}`);
+              allParsedData.push(...parsedData);
             } else {
-              // Stock doesn't exist, insert it
-              await pool.query(
-                `INSERT INTO stocks (symbol, name, current_price, change_percent) 
-                 VALUES (?, ?, ?, ?)`,
-                [
-                  symbol,
-                  `${symbol} Corporation`,
-                  priceData.current_price,
-                  priceData.change_percent
-                ]
-              );
-              successCount++;
-              console.log(`✅ Inserted ${symbol} into database: $${priceData.current_price}`);
+              console.warn(`⚠️ No valid data parsed for ${ticker}. Response:`, JSON.stringify(responseData));
             }
           } else {
-            errorCount++;
+            console.warn(`⚠️ API returned empty body for ${ticker}.`);
           }
-          
-          // Respect rate limits
-          if (symbolsToUpdate.indexOf(symbol) < symbolsToUpdate.length - 1) {
-            console.log('⏳ Waiting 15 seconds for rate limit...');
-            await new Promise(resolve => setTimeout(resolve, 15000));
-          }
-        } catch (error) {
-          console.error(`❌ Error processing ${symbol}:`, error.message);
-          errorCount++;
+        } else {
+          const errorMessage = response.reason.response ? JSON.stringify(response.reason.response.data) : response.reason.message;
+          console.error(`❌ Error fetching price for ${ticker}:`, errorMessage);
         }
-      }
-      
-      const endTime = new Date();
-      const duration = (endTime - startTime) / 1000;
-      
-      this.lastUpdate = endTime;
-      
-      return {
-        success: successCount > 0,
-        updated: successCount,
-        errors: errorCount,
-        total: symbolsToUpdate.length,
-        duration: `${duration.toFixed(1)}s`,
-        timestamp: this.lastUpdate,
-        database: 'testdb_t4'
-      };
+      });
+
+      return allParsedData;
     } catch (error) {
-      console.error('❌ Batch update error:', error);
-      return { success: false, error: error.message };
+      console.error('A critical error occurred during batch API fetching:', error);
+      return [];
     }
   }
-  
-  // Get status of the price service
+
+  async updateStocksInDatabase(stockDataList) {
+    if (!stockDataList || stockDataList.length === 0) {
+      console.log('No valid stock data was parsed to update the database.');
+      return 0;
+    }
+
+    let updatedCount = 0;
+    const newStocksToInsert = [];
+
+    for (const stockData of stockDataList) {
+      if (!stockData.symbol || stockData.current_price === undefined) {
+        console.warn('Skipping invalid stock data:', stockData);
+        continue;
+      }
+
+      try {
+        const [updateResult] = await pool.query(
+          `UPDATE stocks SET current_price = ?, change_percent = ?, name = ?, last_updated = NOW() WHERE symbol = ?`,
+          [stockData.current_price, stockData.change_percent, stockData.name, stockData.symbol]
+        );
+
+        if (updateResult.affectedRows > 0) {
+          updatedCount++;
+        } else {
+          newStocksToInsert.push([
+            stockData.symbol,
+            stockData.name,
+            stockData.current_price,
+            stockData.change_percent
+          ]);
+        }
+      } catch (error) {
+        console.error(`Error processing database update for ${stockData.symbol}:`, error.message);
+      }
+    }
+
+    if (newStocksToInsert.length > 0) {
+      try {
+        const insertQuery = `INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES ? ON DUPLICATE KEY UPDATE symbol=symbol`;
+        const [insertResult] = await pool.query(insertQuery, [newStocksToInsert]);
+        console.log(`Bulk inserted ${insertResult.affectedRows} new stocks.`);
+        updatedCount += insertResult.affectedRows;
+      } catch (error) {
+        console.error('Error during bulk insert of new stocks:', error.message);
+      }
+    }
+    
+    return updatedCount;
+  }
+
+  async updateAllStockPrices() {
+    console.log('🔄 Starting batch update of all stock prices from Yahoo Finance...');
+    const startTime = new Date();
+
+    try {
+      const [existingStocks] = await pool.query('SELECT symbol FROM stocks');
+      const dbSymbols = existingStocks.map(stock => stock.symbol);
+      const allSymbols = [...new Set([...dbSymbols, ...this.availableTickers])];
+      const validSymbols = allSymbols.filter(symbol => symbol && typeof symbol === 'string');
+
+      if (validSymbols.length === 0) {
+        return { success: true, updated: 0, total: 0, message: 'No valid stocks to update.' };
+      }
+
+      const priceDataList = await this.fetchRealTimePrice(validSymbols);
+      const updatedCount = await this.updateStocksInDatabase(priceDataList);
+
+      const duration = (new Date() - startTime) / 1000;
+      this.lastUpdate = new Date();
+
+      console.log(`Batch update finished. Updated ${updatedCount} of ${validSymbols.length} stocks.`);
+      return {
+        success: true,
+        updated: updatedCount,
+        total: validSymbols.length,
+        duration: `${duration.toFixed(1)}s`,
+        timestamp: this.lastUpdate,
+        database: 'investment_system',
+      };
+    } catch (error) {
+      console.error('❌ Batch update process failed:', error);
+      return { success: false, error: error.message, updated: 0 };
+    }
+  }
+
+  async searchSymbol(query) {
+    try {
+      const response = await axios.request({
+        method: 'GET',
+        url: `${this.baseUrl}/search`,
+        params: { query: query, type: 'STOCKS' },
+        headers: {
+          'x-rapidapi-key': this.apiKey,
+          'x-rapidapi-host': this.apiHost,
+        },
+      });
+      return response.data.body || [];
+    } catch (error) {
+      console.error(`Error searching for ${query}:`, error.message);
+      return [];
+    }
+  }
+
   getStatus() {
     return {
       lastUpdate: this.lastUpdate,
-      availableTickers: this.availableTickers.length,
+      apiProvider: 'Yahoo Finance (RapidAPI)',
       apiKey: `${this.apiKey.substring(0, 5)}...`,
-      database: 'testdb_t4'
+      database: 'investment_system',
     };
   }
 }
 
-module.exports = new AlphaVantageService();
+module.exports = new YahooFinanceService();

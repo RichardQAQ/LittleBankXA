@@ -6,36 +6,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const cashBalanceElement = document.getElementById('cash-balance');
     const rechargeBtn = document.getElementById('recharge-btn');
 
-    // 充值按钮点击事件
+    // Recharge button click event
     rechargeBtn.addEventListener('click', function() {
-        const amount = prompt('请输入充值金额:');
+        const amount = prompt('Please enter the amount to recharge:');
         if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
             rechargeCash(parseFloat(amount));
         } else {
-            alert('请输入有效的金额');
+            alert('Please enter a valid amount.');
         }
     });
 
-    // 加载投资组合数据
+    // Load portfolio data
     function loadPortfolioData() {
         fetch('/api/portfolio')
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    showMessage('获取投资组合数据失败: ' + data.error, 'error');
-                    console.error('获取投资组合数据失败:', data.error);
+                    showMessage('Failed to fetch portfolio data: ' + data.error, 'error');
+                    console.error('Failed to fetch portfolio data:', data.error);
                 } else if (data.assets.length === 0) {
-            assetsTableBody.innerHTML = '<tr><td colspan="10">暂无资产，请添加资产到投资组合</td></tr>';
-            totalAssetsElement.textContent = '¥0.00';
-            cashBalanceElement.textContent = '¥0.00';
-        } else {
-            renderAssetsTable(data.assets);
-            calculateAndDisplaySummary(data.assets);
-        }
+                    assetsTableBody.innerHTML = '<tr><td colspan="10">No assets found. Please add assets to your portfolio.</td></tr>';
+                    totalAssetsElement.textContent = '$0.00';
+                    cashBalanceElement.textContent = '$0.00';
+                } else {
+                    renderAssetsTable(data.assets);
+                    calculateAndDisplaySummary(data.assets);
+                }
             })
             .catch(error => {
-                showMessage('获取投资组合数据时发生错误', 'error');
-                console.error('获取投资组合数据时发生错误:', error);
+                showMessage('An error occurred while fetching portfolio data.', 'error');
+                console.error('An error occurred while fetching portfolio data:', error);
             });
     }
 
@@ -48,20 +48,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const marketValue = (currentPrice * asset.quantity).toFixed(2);
             const profitLoss = ((currentPrice - purchasePrice) * asset.quantity).toFixed(2);
             const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
-            const assetType = asset.type === 'stock' ? '股票' : '债券';
+            const assetType = asset.type === 'stock' ? 'Stock' : 'Bond';
 
             html += `<tr data-id="${asset.id}">
                 <td>${asset.name}</td>
                 <td>${assetType}</td>
                 <td>${asset.symbol}</td>
                 <td>${asset.quantity}</td>
-                <td>¥${purchasePrice.toFixed(2)}</td>
-                <td>¥${currentPrice.toFixed(2)}</td>
+                <td>$${purchasePrice.toFixed(2)}</td>
+                <td>$${currentPrice.toFixed(2)}</td>
                 <td>${formatDate(asset.purchaseDate)}</td>
-                <td>¥${marketValue}</td>
-                <td class="${profitLossClass}">¥${profitLoss}</td>
+                <td>$${marketValue}</td>
+                <td class="${profitLossClass}">$${profitLoss}</td>
                 <td>
-                    <button class="btn btn-danger delete-asset" data-id="${asset.id}">删除</button>
+                    <button class="btn btn-danger delete-asset" data-id="${asset.id}">Delete</button>
                 </td>
             </tr>`;
         });
@@ -78,24 +78,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 删除资产
     function deleteAsset(assetId) {
-        if (confirm('确定要删除此资产吗？')) {
+        if (confirm('Are you sure you want to delete this asset?')) {
             fetch(`/api/portfolio/${assetId}`, {
                 method: 'DELETE'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    showMessage('删除资产失败: ' + data.error, 'error');
-                    console.error('删除资产失败:', data.error);
+                    showMessage('Failed to delete asset: ' + data.error, 'error');
+                    console.error('Failed to delete asset:', data.error);
                 } else {
-                    showMessage('资产删除成功', 'success');
+                    showMessage('Asset deleted successfully.', 'success');
                     // 重新加载数据
                     loadPortfolioData();
                 }
             })
             .catch(error => {
-                showMessage('删除资产时发生错误', 'error');
-                console.error('删除资产时发生错误:', error);
+                showMessage('An error occurred while deleting the asset.', 'error');
+                console.error('An error occurred while deleting the asset:', error);
             });
         }
     }
@@ -127,8 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        totalAssetsElement.textContent = '¥' + totalAssets.toFixed(2);
-        cashBalanceElement.textContent = '¥' + cashBalance.toFixed(2);
+        totalAssetsElement.textContent = '$' + totalAssets.toFixed(2);
+        cashBalanceElement.textContent = '$' + cashBalance.toFixed(2);
     }
 
     // 充值现金
@@ -143,24 +143,24 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                showMessage('充值失败: ' + data.error, 'error');
-                console.error('充值失败:', data.error);
+                showMessage('Recharge failed: ' + data.error, 'error');
+                console.error('Recharge failed:', data.error);
             } else {
-                showMessage('充值成功', 'success');
+                showMessage('Recharge successful.', 'success');
                 // 重新加载数据
                 loadPortfolioData();
             }
         })
         .catch(error => {
-            showMessage('充值时发生错误', 'error');
-            console.error('充值时发生错误:', error);
+            showMessage('An error occurred during recharge.', 'error');
+            console.error('An error occurred during recharge:', error);
         });
     }
 
     // 格式化日期
     function formatDate(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('zh-CN');
+        return date.toLocaleDateString('en-US');
     }
 
     // 初始化加载数据

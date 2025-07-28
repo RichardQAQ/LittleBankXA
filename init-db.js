@@ -1,34 +1,38 @@
-const pool = require('./db');
+const mysql = require('mysql2/promise');
+const fs = require('fs').promises;
+const path = require('path');
+
+// Database configuration for initialization (connects without a specific DB first)
+const dbInitConfig = {
+  host: 'localhost',
+  user: 'root',
+  password: 'n3u3da!',
+  multipleStatements: true // Allow multiple SQL statements in one query
+};
+
+const DB_NAME = 'investment_system';
 
 async function initDatabase() {
+  let connection;
   try {
-    console.log('尝试连接数据库...');
-    // 测试连接
-    const connection = await pool.getConnection();
-    console.log('数据库连接成功');
-    connection.release();
+    console.log('Connecting to MySQL server...');
+    connection = await mysql.createConnection(dbInitConfig);
+    console.log('MySQL connection successful.');
 
-    // 创建数据库
-    console.log('尝试创建数据库...');
-    await pool.query('CREATE DATABASE IF NOT EXISTS investment_system');
-    console.log('数据库创建成功或已存在');
+    console.log(`Creating database "${DB_NAME}" if it does not exist...`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME}`);
+    await connection.query(`USE ${DB_NAME}`);
+    console.log(`Database "${DB_NAME}" is ready.`);
 
-    // 选择数据库
-    console.log('尝试选择数据库...');
-    await pool.query('USE investment_system');
-    console.log('数据库选择成功');
-
-    // 创建用户表
-    await pool.query(`
+    console.log('Creating tables...');
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+      );
     `);
-
-    // 创建股票表
-    await pool.query(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS stocks (
         id INT AUTO_INCREMENT PRIMARY KEY,
         symbol VARCHAR(20) NOT NULL UNIQUE,
@@ -36,11 +40,9 @@ async function initDatabase() {
         current_price DECIMAL(10, 2) NOT NULL,
         change_percent DECIMAL(5, 2),
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
+      );
     `);
-
-    // 创建债券表
-    await pool.query(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS bonds (
         id INT AUTO_INCREMENT PRIMARY KEY,
         symbol VARCHAR(20) NOT NULL UNIQUE,
@@ -50,11 +52,9 @@ async function initDatabase() {
         maturity_date DATE NOT NULL,
         current_price DECIMAL(10, 2) NOT NULL,
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
+      );
     `);
-
-    // 创建资产表
-    await pool.query(`
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS portfolio (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -65,48 +65,34 @@ async function initDatabase() {
         purchase_date DATE NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id),
         UNIQUE KEY unique_asset (user_id, asset_type, asset_id)
-      )
+      );
     `);
+    console.log('Tables created successfully.');
 
-    // 读取并执行测试数据SQL文件
-    const fs = require('fs');
-    const path = require('path');
+    console.log('Clearing old test data...');
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0;');
+    await connection.query('TRUNCATE TABLE portfolio;');
+    await connection.query('TRUNCATE TABLE stocks;');
+    await connection.query('TRUNCATE TABLE bonds;');
+    await connection.query('TRUNCATE TABLE users;');
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1;');
+    console.log('Old data cleared.');
+
+    console.log('Inserting new test data...');
     const sqlFilePath = path.join(__dirname, 'data', 'insert_test_data.sql');
-    let sql = fs.readFileSync(sqlFilePath, 'utf8');
-    
-    // 清除注释和空行
-    sql = sql.replace(/--.*$/gm, '').replace(/\n\s*\n/g, '\n');
-    
-    // 分割SQL语句
-    const sqlStatements = sql.split(';').filter(statement => statement.trim() !== '');
-    
-    // 执行SQL语句
-    const conn = await pool.getConnection();
-    
-    // 先清空表数据
-    await conn.query('DELETE FROM portfolio');
-    await conn.query('DELETE FROM stocks');
-    await conn.query('DELETE FROM bonds');
-    await conn.query('DELETE FROM users');
-    
-    // 重新设置自增ID
-    await conn.query('ALTER TABLE users AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE stocks AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE bonds AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE portfolio AUTO_INCREMENT = 1');
-    
-    // 插入测试数据
-    for (const statement of sqlStatements) {
-      await conn.query(statement);
-    }
-    conn.release();
-    console.log('测试数据插入成功');
-    console.log('数据库初始化成功');
+    const sql = await fs.readFile(sqlFilePath, 'utf8');
+    await connection.query(sql);
+    console.log('Test data inserted successfully.');
+
+    console.log('✅ Database initialization complete.');
+
   } catch (error) {
-    console.error('数据库初始化失败:', error);
+    console.error('❌ Database initialization failed:', error);
   } finally {
-    // 关闭连接池
-    await pool.end();
+    if (connection) {
+      await connection.end();
+      console.log('MySQL connection closed.');
+    }
   }
 }
 

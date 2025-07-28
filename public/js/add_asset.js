@@ -54,10 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                showMessage('添加资产失败: ' + data.error, 'error');
-                console.error('添加资产失败:', data.error);
+                showMessage('Failed to add asset: ' + data.error, 'error');
+                console.error('Failed to add asset:', data.error);
             } else {
-                showMessage('资产添加成功', 'success');
+                showMessage('Asset added successfully.', 'success');
                 // 重置表单
                 addAssetForm.reset();
                 document.getElementById('purchase-date').value = today;
@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            showMessage('添加资产时发生错误', 'error');
-            console.error('添加资产时发生错误:', error);
+            showMessage('An error occurred while adding the asset.', 'error');
+            console.error('An error occurred while adding the asset:', error);
         });
     });
 

@@ -1,48 +1,48 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>投资组合管理系统</title>
+    <title>Portfolio Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
-        <h1>投资组合管理系统</h1>
+        <h1>Portfolio Management System</h1>
         <nav>
             <ul>
-                <li><a href="index.html" class="active">仪表盘</a></li>
-                <li><a href="portfolio.html">投资组合</a></li>
-                <li><a href="add_asset.html">添加资产</a></li>
+                <li><a href="index.html" class="active">Dashboard</a></li>
+                <li><a href="portfolio.html">Portfolio</a></li>
+                <li><a href="add_asset.html">Add Asset</a></li>
             </ul>
         </nav>
     </header>
     <main>
         <section id="overview">
-            <h2>投资组合概览</h2>
+            <h2>Portfolio Overview</h2>
             <div class="summary-cards">
                 <div class="card">
-                    <h3>总资产价值</h3>
-                    <p id="total-value">加载中...</p>
+                    <h3>Total Asset Value</h3>
+                    <p id="total-value">Loading...</p>
                 </div>
                 <div class="card">
-                    <h3>总收益率</h3>
-                    <p id="total-return">加载中...</p>
+                    <h3>Total Return</h3>
+                    <p id="total-return">Loading...</p>
                 </div>
             </div>
         </section>
         <section id="performance">
-            <h2>投资组合表现</h2>
+            <h2>Portfolio Performance</h2>
             <canvas id="performance-chart"></canvas>
         </section>
         <section id="info">
-            <h2>股票信息</h2>
-            <div id="recent-info-list">加载中...</div>
+            <h2>Stock Information</h2>
+            <div id="recent-info-list">Loading...</div>
         </section>
         <section id="recent-assets">
-            <h2>最近添加的资产</h2>
-            <div id="recent-assets-list">加载中...</div>
+            <h2>Recently Added Assets</h2>
+            <div id="recent-assets-list">Loading...</div>
         </section>
         <section id="watchlist">
             <h2>Your Watchlist</h2>
@@ -62,14 +62,14 @@
         <section id="api-status">
             <h2>API Connection</h2>
             <div class="card">
-                <h3>Alpha Vantage API</h3>
+                <h3>Yahoo Finance API</h3>
                 <p id="api-status-text">Unknown</p>
                 <button onclick="updatePrices()" class="btn">Update Prices</button>
             </div>
         </section>
     </main>
     <footer>
-        <p>&copy; 2024 投资组合管理系统</p>
+        <p>&copy; 2024 Portfolio Management System</p>
     </footer>
     <script src="js/dashboard.js"></script>
 </body>

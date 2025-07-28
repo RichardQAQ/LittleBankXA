@@ -45,3 +45,9 @@ class StockSearch {
 
 // Export for use in other files
 window.StockSearch = StockSearch;
+
+// filepath: init-db.js
+// ...
+await pool.query('CREATE DATABASE IF NOT EXISTS investment_system'); // <-- The setup script writes here
+await pool.query('USE investment_system');
+// ...
