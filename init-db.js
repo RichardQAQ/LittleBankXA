@@ -28,16 +28,16 @@ async function initDatabase() {
     `);
 
     // 创建股票表
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS stocks (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        symbol VARCHAR(20) NOT NULL UNIQUE,
-        name VARCHAR(100) NOT NULL,
-        current_price DECIMAL(10, 2) NOT NULL,
-        change_percent DECIMAL(5, 2),
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
+    // await pool.query(`
+    //   CREATE TABLE IF NOT EXISTS stocks (
+    //     id INT AUTO_INCREMENT PRIMARY KEY,
+    //     symbol VARCHAR(20) NOT NULL UNIQUE,
+    //     name VARCHAR(100) NOT NULL,
+    //     current_price DECIMAL(10, 2) NOT NULL,
+    //     change_percent DECIMAL(5, 2),
+    //     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    //   )
+    // `);
 
     // 创建债券表
     await pool.query(`

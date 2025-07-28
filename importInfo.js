@@ -5,17 +5,19 @@ const mysql = require('mysql2/promise');
 
 /* 20 支股票 */
 const SYMBOLS = [
-  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA',
-  'NVDA', 'META', 'NFLX', 'ORCL', 'INTC',
-  'AMD', 'CSCO', 'ADBE', 'CRM', 'PYPL',
-  'UBER', 'ZM', 'COIN', 'SHOP', 'SNOW'
+  // 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'
+   'NVDA', 'META', 'NFLX', 'ORCL', 'INTC'
 ];
+// ,
+//   'NVDA', 'META', 'NFLX', 'ORCL', 'INTC',
+//   'AMD', 'CSCO', 'ADBE', 'CRM', 'PYPL',
+//   'UBER', 'ZM', 'COIN', 'SHOP', 'SNOW'
 
 
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PWD || 'root',
+  password: process.env.DB_PWD || 'n3u3da!',
   database: 'investment_system'
 };
 
