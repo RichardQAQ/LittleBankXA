@@ -1,0 +1,52 @@
+### 1. Database Structure
+- Database Name: investment_system
+- Tables: users, stocks, bonds, portfolio
+
+### 2. Table Structure and Relations
+
+#### (1) users (User Table)
+- Purpose: Stores user information.
+- Key Fields:
+  - id: Primary Key, Auto-increment
+  - username: User's name (not null)
+  - created_at: Creation timestamp (defaults to current time)
+
+#### (2) stocks (Stock Table)
+- Purpose: Stores stock information.
+- Key Fields:
+  - id: Primary Key, Auto-increment
+  - symbol: Stock symbol (unique, not null)
+  - name: Stock name (not null)
+  - current_price: Current price (not null)
+  - change_percent: Price change percentage
+  - last_updated: Last update timestamp
+
+#### (3) bonds (Bond Table)
+- Purpose: Stores bond information.
+- Key Fields:
+  - id: Primary Key, Auto-increment
+  - symbol: Bond symbol (unique, not null)
+  - name: Bond name (not null)
+  - face_value: Face value (not null)
+  - coupon_rate: Coupon rate (not null)
+  - maturity_date: Maturity date (not null)
+  - current_price: Current price (not null)
+  - last_updated: Last update timestamp
+
+#### (4) portfolio (Portfolio Table)
+- Purpose: Records assets (stocks, bonds, cash) held by users.
+- Key Fields:
+  - id: Primary Key, Auto-increment
+  - user_id: Foreign Key, references users(id), identifies the asset owner.
+  - asset_type: Asset type (enum: 'stock', 'bond', 'cash')
+  - asset_id: Asset ID (corresponds to the id in the stocks or bonds table)
+  - quantity: Quantity held
+  - purchase_price: Purchase price
+  - purchase_date: Purchase date
+- Constraints:
+  - Foreign Key: user_id references users(id)
+  - Unique Key: unique_asset(user_id, asset_type, asset_id) ensures a user has only one record for each unique asset.
+
+### 3. Table Relationships
+- users to portfolio: One-to-many (one user can have multiple assets).
+- portfolio to stocks/bonds: Linked via asset_type and asset_id. If asset_type='stock', asset_id corresponds to stocks.id; if asset_type='bond', asset_id corresponds to bonds.id.
