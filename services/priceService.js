@@ -102,6 +102,75 @@ class YahooFinanceService {
     }
   }
 
+  /**
+   * Fetches historical price data for a single stock symbol.
+   * @param {string} symbol - The stock ticker (e.g., 'AAPL').
+   * @returns {Promise<object>} A promise that resolves to chart data.
+   */
+  async fetchHistoricalData(symbol) {
+    if (!symbol) throw new Error('Symbol is required to fetch historical data.');
+
+    const options = {
+      method: 'GET',
+      url: `${this.baseUrl}/stock/history`,
+      params: {
+        symbol: symbol,
+        interval: '3mo',
+        diffandsplits: 'false'
+      },
+      headers: {
+        'x-rapidapi-key': this.apiKey,
+        'x-rapidapi-host': this.apiHost,
+      }
+    };
+
+    try {
+      console.log(`Fetching historical data for ${symbol} with interval 5m...`);
+      const response = await axios.request(options);
+
+      // Log the raw response for debugging
+      console.log(`Raw historical data response for ${symbol}:`, JSON.stringify(response.data, null, 2));
+
+      // --- START: REWRITTEN PARSING LOGIC ---
+      const historicalData = response.data.body;
+
+      if (!historicalData || typeof historicalData !== 'object' || Object.keys(historicalData).length === 0) {
+        console.warn(`No valid historical data found for ${symbol} in API response. The structure might have changed.`);
+        return { labels: [], values: [], symbol };
+      }
+
+      // Get the timestamps (which are the keys) and sort them chronologically.
+      const timestamps = Object.keys(historicalData).sort((a, b) => a - b);
+
+      const labels = [];
+      const values = [];
+
+      // Iterate over the sorted timestamps to build the chart data.
+      for (const ts of timestamps) {
+        const entry = historicalData[ts];
+        // Ensure the entry has a valid close price and a UTC timestamp for the label.
+        if (entry && entry.close !== null && entry.date_utc) {
+          // For 5m interval, use a more detailed time format.
+          labels.push(new Date(entry.date_utc * 1000).toLocaleString());
+          values.push(entry.close);
+        }
+      }
+
+      if (labels.length === 0) {
+        console.warn(`Parsed data for ${symbol} resulted in empty chart arrays.`);
+        return { labels: [], values: [], symbol };
+      }
+
+      return { labels: labels, values: values, symbol };
+      // --- END: REWRITTEN PARSING LOGIC ---
+
+    } catch (error) {
+      const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+      console.error(`❌ Error fetching historical data for ${symbol}:`, errorMessage);
+      throw new Error(`Failed to fetch historical data for ${symbol}.`);
+    }
+  }
+
   async updateStocksInDatabase(stockDataList) {
     if (!stockDataList || stockDataList.length === 0) {
       console.log('No valid stock data was parsed to update the database.');

@@ -124,6 +124,15 @@ tr:hover {
     background-color: #f5f5f5;
 }
 
+/* Styles for profit/loss indicators */
+td.positive {
+    color: #27ae60; /* Green */
+}
+
+td.negative {
+    color: #c0392b; /* Red */
+}
+
 /* 按钮样式 */
 .btn {
     display: inline-block;
@@ -260,4 +269,16 @@ footer {
     padding: 1rem;
     border-radius: 4px;
     margin-bottom: 1rem;
+}
+
+/* Historical Chart Selector Styles */
+.chart-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    max-width: 500px;
+}
+
+.chart-selector input {
+    flex-grow: 1;
 }

@@ -40,9 +40,11 @@
             <h2>Stock Information</h2>
             <div id="recent-info-list">Loading...</div>
         </section>
-        <section id="recent-assets">
-            <h2>Recently Added Assets</h2>
-            <div id="recent-assets-list">Loading...</div>
+        <section id="holdings">
+            <h2>My Holdings</h2>
+            <div id="holdings-list" class="table-container">
+                <p class="loading">Loading holdings...</p>
+            </div>
         </section>
         <section id="watchlist">
             <h2>Your Watchlist</h2>
@@ -55,7 +57,8 @@
         <section id="historical-charts">
             <h2>Historical Performance</h2>
             <div class="chart-selector">
-                <select id="chart-stock-selector"></select>
+                <input type="text" id="historical-stock-input" placeholder="Enter stock symbol (e.g., AAPL)">
+                <button id="historical-stock-button" class="btn">Get History</button>
             </div>
             <div id="historical-chart-container"></div>
         </section>
@@ -71,6 +74,8 @@
     <footer>
         <p>&copy; 2024 Portfolio Management System</p>
     </footer>
+    <script src="js/stockChart.js"></script>
+    <script src="js/historicalChart.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

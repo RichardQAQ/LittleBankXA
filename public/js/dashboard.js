@@ -76,49 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // 获取最近添加的资产
-    function fetchRecentAssets() {
-        console.log('Fetching recent assets data...');
-        fetch('/api/portfolio/recent')
-            .then(response => {
-                console.log('Recent assets response status:', response.status);
-                console.log('最近资产响应头:', response.headers);
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    recentAssetsList.innerHTML = '<div class="error-message">Failed to fetch recent assets: ' + data.error + '</div>';
-                    console.error('Failed to fetch recent assets:', data.error);
-                } else if (data.assets.length === 0) {
-                    recentAssetsList.innerHTML = '<p>No assets found.</p>';
-                } else {
-                    let html = '<div class="table-container"><table>';
-                    html += '<thead><tr><th>Asset Name</th><th>Type</th><th>Quantity</th><th>Purchase Price</th><th>Current Price</th><th>P/L</th></tr></thead>';
-                    html += '<tbody>';
-                    data.assets.forEach(asset => {
-                        const currentPrice = parseFloat(asset.current_price);
-                        const purchasePrice = parseFloat(asset.purchase_price);
-                        const profitLoss = ((currentPrice - purchasePrice) * asset.quantity).toFixed(2);
-                        const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
-                        html += `<tr>
-                            <td>${asset.name}</td>
-                            <td>${asset.type === 'stock' ? 'Stock' : 'Bond'}</td>
-                            <td>${asset.quantity}</td>
-                            <td>$${purchasePrice.toFixed(2)}</td>
-                            <td>$${currentPrice.toFixed(2)}</td>
-                            <td class="${profitLossClass}">$${profitLoss}</td>
-                        </tr>`;
-                    });
-                    html += '</tbody></table></div>';
-                    recentAssetsList.innerHTML = html;
-                }
-            })
-            .catch(error => {
-                recentAssetsList.innerHTML = '<div class="error-message">Error fetching recent assets.</div>';
-                console.error('Error fetching recent assets:', error);
-            });
-    }
-
     // 获取表现数据
     function fetchPerformanceData() {
         fetch('/api/portfolio/performance')
@@ -232,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化数据
     fetchPortfolioOverview();
-    fetchRecentAssets();
+    fetchHoldings(); // Replaces fetchRecentAssets()
     fetchPerformanceData();
     // fetchStockInfo(); // This should be handled by the backend price service now
     initializeStockSearch();
@@ -240,10 +197,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 设置定时刷新
     setInterval(fetchPortfolioOverview, 60000); // 每分钟刷新一次
-    setInterval(fetchRecentAssets, 60000);
+    setInterval(fetchHoldings, 60000); // Replaces fetchRecentAssets()
     setInterval(fetchPerformanceData, 300000); // 每5分钟刷新一次
     // setInterval(fetchStockInfo, 300000);
     setInterval(fetchWatchlist, 60000);
+
+    // --- The historical chart code has been moved to historicalChart.js ---
+    // --- It is removed from this file to prevent conflicts. ---
 });
 
 async function updatePrices() {
@@ -306,3 +266,49 @@ async function updatePrices() {
 
 // Make the function available globally
 window.updatePrices = updatePrices;
+
+// This new function fetches and displays the complete portfolio.
+async function fetchHoldings() {
+    const holdingsList = document.getElementById('holdings-list');
+    try {
+        const response = await fetch('/api/portfolio');
+        const data = await response.json();
+
+        if (data.error) {
+            holdingsList.innerHTML = `<p class="error-message">Error: ${data.error}</p>`;
+            return;
+        }
+
+        if (!data.assets || data.assets.length === 0) {
+            holdingsList.innerHTML = '<p>You have no assets in your portfolio. <a href="add_asset.html">Add one now</a>.</p>';
+            return;
+        }
+
+        let html = '<table><thead><tr><th>Asset Name</th><th>Type</th><th>Symbol</th><th>Quantity</th><th>Purchase Price</th><th>Current Price</th><th>Market Value</th><th>P/L</th></tr></thead><tbody>';
+        data.assets.forEach(asset => {
+            const currentPrice = parseFloat(asset.current_price);
+            const purchasePrice = parseFloat(asset.purchase_price);
+            const marketValue = (currentPrice * asset.quantity).toFixed(2);
+            const profitLoss = ((currentPrice - purchasePrice) * asset.quantity).toFixed(2);
+            const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
+            const assetType = asset.type === 'stock' ? 'Stock' : 'Bond';
+
+            html += `<tr>
+                <td>${asset.name}</td>
+                <td>${assetType}</td>
+                <td>${asset.symbol}</td>
+                <td>${asset.quantity}</td>
+                <td>$${purchasePrice.toFixed(2)}</td>
+                <td>$${currentPrice.toFixed(2)}</td>
+                <td>$${marketValue}</td>
+                <td class="${profitLossClass}">$${profitLoss}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        holdingsList.innerHTML = html;
+
+    } catch (error) {
+        holdingsList.innerHTML = '<p class="error-message">Could not fetch portfolio data.</p>';
+        console.error('Error fetching holdings:', error);
+    }
+}

@@ -85,25 +85,6 @@ apiRouter.get('/portfolio/performance', async (req, res) => {
   }
 });
 
-// GET /api/portfolio/recent
-apiRouter.get('/portfolio/recent', async (req, res) => {
-  console.log('GET /api/portfolio/recent called');
-  try {
-    const userId = 1; // Hardcoded user ID
-    const [items] = await pool.query(
-      `(SELECT p.*, s.name, s.symbol, s.current_price, 'stock' as type FROM portfolio p JOIN stocks s ON p.asset_id = s.id WHERE p.user_id = ? AND p.asset_type = 'stock')
-       UNION ALL
-       (SELECT p.*, b.name, b.symbol, b.current_price, 'bond' as type FROM portfolio p JOIN bonds b ON p.asset_id = b.id WHERE p.user_id = ? AND p.asset_type = 'bond')
-       ORDER BY purchase_date DESC LIMIT 5`,
-      [userId, userId]
-    );
-    res.json(items); // Return array directly
-  } catch (error) {
-    console.error('Error in /api/portfolio/recent:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // GET /api/portfolio (full portfolio)
 apiRouter.get('/portfolio', async (req, res) => {
   console.log('GET /api/portfolio called');
@@ -212,8 +193,8 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   console.log(`GET /api/stocks/${symbol}/history called`);
   try {
     // This uses the Yahoo Finance service to get historical data
-    const historyData = await priceService.fetchHistoricalData(symbol); // Assuming this method exists in the service
-    if (!historyData || historyData.length === 0) {
+    const historyData = await priceService.fetchHistoricalData(symbol);
+    if (!historyData || historyData.labels.length === 0) {
       return res.status(404).json({ error: 'No historical data found for symbol' });
     }
     res.json(historyData);
