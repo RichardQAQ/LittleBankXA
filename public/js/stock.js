@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorElement = document.getElementById('error');
     const stockDataElement = document.getElementById('stock-data');
     const stockTableBody = document.getElementById('stock-table-body');
+    const chartContainer = document.getElementById('historical-chart-container');
 
-    // const priceService = require('./services/priceService');
 
     // 隐藏加载指示器和错误提示
     loadingIndicator.style.display = 'none';
@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('开始查询股票信息');
         const symbol = stockSymbolInput.value.trim().toUpperCase();
         if (symbol) {
-            getStockData(symbol);
+            // getStockData(symbol);
+            console.log('获取股票数据Chart:', symbol);
+            displayHistoricalChart(symbol);
         } else {
             showError('请输入股票代码');
         }
@@ -119,6 +121,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // } finally {
         //     hideLoading();
         // }
+    }
+
+    async function displayHistoricalChart(symbol) {
+        if (!symbol) {
+            chartContainer.style.height = '0px'; // Collapse the container
+            // A short delay allows the collapse animation to start before content disappears
+            setTimeout(() => {
+                chartContainer.innerHTML = '';
+                if (currentChart && currentChart.chartInstance) {
+                    currentChart.chartInstance.destroy();
+                    currentChart = null;
+                }
+            }, 400);
+            return;
+        }
+
+        chartContainer.innerHTML = '<p class="loading">Loading chart data...</p>';
+        chartContainer.style.height = '400px'; // Expand the container to show loading/chart
+
+        try {
+            const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Failed to fetch data: ${response.statusText}`);
+            }
+            const chartData = await response.json();
+            // Ensure you have a global StockChart class available
+            currentChart = new StockChart('historical-chart-container', chartData);
+        } catch (error) {
+            chartContainer.innerHTML = `<p class="error-message">Could not load chart for ${symbol}: ${error.message}</p>`;
+            console.error(error);
+        }
     }
 
     // 更新股票价格

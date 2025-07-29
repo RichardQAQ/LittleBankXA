@@ -4,6 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 const path = require('path');
 const { getStockData, updateStockPrice, getBondData } = require('./alphaVantageService');
+const priceService = require('./services/priceService'); // 假设有一个价格服务模块
 
 // 中间件
 app.use(express.json());
@@ -480,6 +481,22 @@ apiRouter.get('/history', async (req, res) => {
   } catch (err) {
       console.error(err);
       res.status(500).json({ error: '服务器错误' });
+  }
+});
+
+apiRouter.get('/stocks/:symbol/history', async (req, res) => {
+  const { symbol } = req.params;
+  console.log(`GET /api/stocks/${symbol}/history called`);
+  try {
+    // This uses the Yahoo Finance service to get historical data
+    const historyData = await priceService.fetchHistoricalData(symbol);
+    if (!historyData || historyData.labels.length === 0) {
+      return res.status(404).json({ error: 'No historical data found for symbol' });
+    }
+    res.json(historyData);
+  } catch (error) {
+    console.error(`Error fetching history for ${symbol}:`, error);
+    res.status(500).json({ error: error.message });
   }
 });
 

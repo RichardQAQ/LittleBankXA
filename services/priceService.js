@@ -115,7 +115,7 @@ class YahooFinanceService {
       url: `${this.baseUrl}/stock/history`,
       params: {
         symbol: symbol,
-        interval: '3mo',
+        interval: '5m',
         diffandsplits: 'false'
       },
       headers: {
