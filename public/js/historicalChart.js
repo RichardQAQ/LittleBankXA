@@ -11,15 +11,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function displayHistoricalChart(symbol) {
         if (!symbol) {
-            chartContainer.innerHTML = ''; // Clear chart if no stock is selected
-            if (currentChart && currentChart.chartInstance) {
-                currentChart.chartInstance.destroy();
-                currentChart = null;
-            }
+            chartContainer.style.height = '0px'; // Collapse the container
+            // A short delay allows the collapse animation to start before content disappears
+            setTimeout(() => {
+                chartContainer.innerHTML = ''; 
+                if (currentChart && currentChart.chartInstance) {
+                    currentChart.chartInstance.destroy();
+                    currentChart = null;
+                }
+            }, 400);
             return;
         }
 
         chartContainer.innerHTML = '<p class="loading">Loading chart data...</p>';
+        chartContainer.style.height = '400px'; // Expand the container to show loading/chart
+
         try {
             const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
             if (!response.ok) {

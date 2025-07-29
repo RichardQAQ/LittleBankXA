@@ -283,9 +283,11 @@ footer {
     flex-grow: 1;
 }
 
-/* Give the chart container a fixed height to improve aspect ratio */
+/* Give the chart container a flexible height with a smooth transition */
 #historical-chart-container {
     position: relative;
-    height: 400px; /* Adjust this value as needed */
+    height: 0; /* Start with no height */
     width: 100%;
+    overflow: hidden; /* Hide content when collapsed */
+    transition: height 0.4s ease-in-out; /* Animate the height change */
 }
