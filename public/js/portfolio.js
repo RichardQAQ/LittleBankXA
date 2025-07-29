@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${asset.quantity}</td>
                 <td>$${purchasePrice.toFixed(2)}</td>
                 <td>$${currentPrice.toFixed(2)}</td>
-                <td>${formatDate(asset.purchaseDate)}</td>
+                <td>${asset.purchase_date.split('T')[0]}</td>
                 <td>$${marketValue}</td>
                 <td class="${profitLossClass}">$${profitLoss}</td>
                 <td>
@@ -155,12 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('An error occurred during recharge.', 'error');
             console.error('An error occurred during recharge:', error);
         });
-    }
-
-    // 格式化日期
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US');
     }
 
     // 初始化加载数据

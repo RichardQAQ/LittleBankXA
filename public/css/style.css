@@ -282,3 +282,10 @@ footer {
 .chart-selector input {
     flex-grow: 1;
 }
+
+/* Give the chart container a fixed height to improve aspect ratio */
+#historical-chart-container {
+    position: relative;
+    height: 400px; /* Adjust this value as needed */
+    width: 100%;
+}

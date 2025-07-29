@@ -26,8 +26,15 @@ class StockChart {
     }
 
     // --- START: Calculate Y-axis range for better zoom ---
-    const dataMin = Math.min(...this.chartData.values);
-    const dataMax = Math.max(...this.chartData.values);
+    // CORRECTED: Filter out non-positive values to prevent erroneous '0' from skewing the axis.
+    const validValues = this.chartData.values.filter(v => typeof v === 'number' && !isNaN(v) && v > 0);
+    if (validValues.length === 0) {
+        this.container.innerHTML = '<p class="error-message">No valid data points to display.</p>';
+        return;
+    }
+
+    const dataMin = Math.min(...validValues);
+    const dataMax = Math.max(...validValues);
     let suggestedMin, suggestedMax;
 
     if (dataMin === dataMax) {
@@ -35,9 +42,9 @@ class StockChart {
         suggestedMin = dataMin - 1;
         suggestedMax = dataMax + 1;
     } else {
-        // Add 2% padding for a stronger zoom effect
+        // Add 1% padding for an even stronger zoom effect
         const range = dataMax - dataMin;
-        const padding = range * 0.02; // REDUCED from 0.1 for a stronger zoom
+        const padding = range * 0.01; // REDUCED from 0.02 for maximum zoom
         suggestedMin = dataMin - padding;
         suggestedMax = dataMax + padding;
     }
@@ -78,8 +85,9 @@ class StockChart {
               text: 'Price (USD)'
             },
             // --- START: Apply calculated min/max ---
-            suggestedMin: suggestedMin,
-            suggestedMax: suggestedMax
+            // Use 'min' and 'max' to force the axis range, providing a better zoom.
+            min: suggestedMin,
+            max: suggestedMax
             // --- END: Apply calculated min/max ---
           },
           x: {
