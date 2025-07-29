@@ -21,9 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('开始查询股票信息');
         const symbol = stockSymbolInput.value.trim().toUpperCase();
         if (symbol) {
-            // getStockData(symbol);
-            console.log('获取股票数据Chart:', symbol);
-            displayHistoricalChart(symbol);
+            getStockData(symbol);
+            console.log('获取股票数据:', symbol);
         } else {
             showError('请输入股票代码');
         }
@@ -43,116 +42,106 @@ document.addEventListener('DOMContentLoaded', () => {
     async function getStockData(symbol) {
         console.log('开始获取股票信息数据');
         stockDataElement.innerHTML = '<p>加载股票数据中...</p>';
-
-        const API_KEY = 'DK81UQ20HPA8A0WU'; // 应从环境变量获取
-        // const STOCK_SYMBOLS = ['AAPL', 'MSFT']; // 测试时先减少股票数量
-        // const STOCK_SYMBOLS = symbol;
-
-        // 顺序请求函数
-        const fetchSequentially = async () => {
-            console.log('調用API');
-            const results = [];
-            // for (const symbol of STOCK_SYMBOLS) {
-            try {
-                const response = await fetch(
-                    `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`
-                );
-                const data = await response.json();
-
-                if (data.Note) {
-                    results.push({ symbol, error: 'API限制' });
-                } else if (!data['Global Quote']) {
-                    results.push({ symbol, error: '无效数据' });
-                } else {
-                    results.push({
-                        symbol,
-                        data: data['Global Quote']
-                    });
-                }
-            } catch (error) {
-                results.push({ symbol, error: error.message });
+        showLoading();
+        
+        try {
+            const response = await fetch(`/api/stocks/single/${symbol}`);
+            if (!response.ok) {
+                throw new Error('获取股票数据失败');
             }
-            await new Promise(resolve => setTimeout(resolve, 15000)); // 15秒间隔
-            // }
-            return results;
-        };
-
-        fetchSequentially()
-            .then(results => {
-                console.log('获取结果:', results);
-
-                let html = '<div class="table-container"><table>';
-                html += '<thead><tr><th>股票</th><th>价格</th><th>涨跌</th><th>涨幅</th></tr></thead><tbody>';
-
-                results.forEach(item => {
-                    if (item.error) {
-                        html += `<tr>
-                        <td>${item.symbol}</td>
-                        <td colspan="3" class="error">${item.error}</td>
-                    </tr>`;
-                    } else {
-                        const q = item.data;
-                        const changeClass = parseFloat(q['09. change']) >= 0 ? 'positive' : 'negative';
-                        html += `<tr>
-                        <td>${item.symbol}</td>
-                        <td>$${q['05. price']}</td>
-                        <td class="${changeClass}">${q['09. change']}</td>
-                        <td class="${changeClass}">${q['10. change percent']}</td>
-                    </tr>`;
-                    }
-                });
-
-                html += '</tbody></table></div>';
-                stockDataElement.innerHTML = html;
-            })
-            .catch(error => {
-                recentInfoList.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
-            });
-        // showLoading();
-        // try {
-        //     const response = await fetch(`/api/stocks/${symbol}`);
-        //     if (!response.ok) {
-        //         throw new Error('获取股票数据失败');
-        //     }
-        //     const stockData = await response.json();
-        //     displayStockData(stockData);
-        // } catch (error) {
-        //     showError(error.message);
-        // } finally {
-        //     hideLoading();
-        // }
+            const stockData = await response.json();
+            console.log('获取到股票数据:', stockData);
+            displayStockData(stockData);
+            
+            // 同时获取并显示历史图表
+            displayHistoricalChart(symbol);
+        } catch (error) {
+            showError(error.message);
+            console.error('获取股票数据失败:', error);
+        } finally {
+            hideLoading();
+        }
     }
 
     async function displayHistoricalChart(symbol) {
-        
         if (!symbol) {
-            chartContainer.style.height = '0px'; // Collapse the container
-            // A short delay allows the collapse animation to start before content disappears
+            chartContainer.style.height = '0px'; // 收起容器
             setTimeout(() => {
                 chartContainer.innerHTML = '';
-                if (currentChart && currentChart.chartInstance) {
-                    currentChart.chartInstance.destroy();
-                    currentChart = null;
-                }
             }, 400);
             return;
         }
 
-        chartContainer.innerHTML = '<p class="loading">Loading chart data...</p>';
-        chartContainer.style.height = '400px'; // Expand the container to show loading/chart
+        chartContainer.innerHTML = '<p class="loading">正在加载图表数据...</p>';
+        chartContainer.style.height = '400px'; // 展开容器显示加载/图表
 
         try {
             const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || `Failed to fetch data: ${response.statusText}`);
+                throw new Error(errorData.error || `获取数据失败: ${response.statusText}`);
             }
             const chartData = await response.json();
-            // Ensure you have a global StockChart class available
-            const currentChart = new StockChart('historical-chart-container', chartData);
+            console.log('获取到历史数据:', chartData);
+            
+            // 创建图表
+            const ctx = document.createElement('canvas');
+            ctx.id = 'stock-chart';
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(ctx);
+            
+            // 计算Y轴的最小值和最大值，使图表更好地展示价格波动
+            const values = chartData.values.map(v => parseFloat(v));
+            const minValue = Math.min(...values) * 0.995; // 最小值略低于数据最小值
+            const maxValue = Math.max(...values) * 1.005; // 最大值略高于数据最大值
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: `${symbol} 价格走势`,
+                        data: chartData.values,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: `${symbol} 历史价格走势`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            suggestedMin: minValue,
+                            suggestedMax: maxValue,
+                            title: {
+                                display: true,
+                                text: '价格 (元)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
         } catch (error) {
-            chartContainer.innerHTML = `<p class="error-message">Could not load chart for ${symbol}: ${error.message}</p>`;
-            console.error(error);
+            chartContainer.innerHTML = `<p class="error-message">无法加载 ${symbol} 的图表: ${error.message}</p>`;
+            console.error('图表加载错误:', error);
         }
     }
 
@@ -181,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadStockList() {
         console.log('加载股票列表');
         try {
-            const response = await fetch('/api/history');
+            const response = await fetch('/api/stocks');
             if (!response.ok) {
                 throw new Error('获取股票列表失败');
             }
@@ -195,15 +184,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 显示股票数据
     function displayStockData(stockData) {
+        // 计算涨跌颜色
+        const changePercent = parseFloat(stockData.change_percent) || 0;
+        const changeClass = changePercent >= 0 ? 'positive' : 'negative';
+        const changeSign = changePercent >= 0 ? '+' : '';
+        
         stockDataElement.innerHTML = `
-            <div class="stock-info">
-                <h4>${stockData.symbol} - ${stockData.shortName || '未知名称'}</h4>
-                <p>当前价格: <span class="price">¥${stockData.regularMarketPrice || 'N/A'}</span></p>
-                <p>开盘价: ¥${stockData.regularMarketOpen || 'N/A'}</p>
-                <p>最高价: ¥${stockData.regularMarketDayHigh || 'N/A'}</p>
-                <p>最低价: ¥${stockData.regularMarketDayLow || 'N/A'}</p>
-                <p>成交量: ${stockData.regularMarketVolume ? formatNumber(stockData.regularMarketVolume) : 'N/A'}</p>
-                <p>市值: ¥${stockData.marketCap ? formatNumber(stockData.marketCap) : 'N/A'}</p>
+            <div class="stock-card">
+                <div class="stock-header">
+                    <h3>${stockData.name || stockData.symbol}</h3>
+                    <span class="stock-symbol">${stockData.symbol}</span>
+                </div>
+                <div class="stock-details">
+                    <div class="price-info">
+                        <div class="current-price">¥${parseFloat(stockData.current_price || stockData.price).toFixed(2)}</div>
+                        <div class="price-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
+                    </div>
+                    <div class="stock-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">成交量:</span>
+                            <span class="stat-value">${formatNumber(stockData.volume || 0)}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">市值:</span>
+                            <span class="stat-value">¥${formatNumber(stockData.market_cap || 0)}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">更新时间:</span>
+                            <span class="stat-value">${new Date(stockData.updated_at || new Date()).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="stock-actions">
+                        <button class="btn btn-primary" onclick="window.location.href='add_asset.html?type=stock&symbol=${stockData.symbol}&name=${stockData.name || stockData.symbol}&price=${stockData.current_price || stockData.price}'">
+                            购买股票
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -213,24 +229,28 @@ document.addEventListener('DOMContentLoaded', () => {
         stockTableBody.innerHTML = '';
         stocks.forEach(stock => {
             const row = document.createElement('tr');
+            
+            // 计算涨跌颜色
+            const changeClass = parseFloat(stock.change_percent) >= 0 ? 'positive' : 'negative';
+            const changeSign = parseFloat(stock.change_percent) >= 0 ? '+' : '';
+            
             row.innerHTML = `
             <td>${stock.id}</td>
             <td>${stock.symbol}</td>
-            <td>${stock.trade_date}</td>
-            <td>¥${stock.open_price}</td>
-            <td>¥${stock.high_price}</td>
-            <td>¥${stock.low_price}</td>
-            <td>¥${stock.close_price}</td>
-            <td>${stock.volume}</td>
-            <td>${stock.stock_id}</td>
+            <td>${new Date(stock.updated_at).toLocaleDateString()}</td>
+            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
+            <td>¥${(parseFloat(stock.current_price) * 0.99).toFixed(2)}</td>
+            <td>¥${(parseFloat(stock.current_price) * 1.01).toFixed(2)}</td>
+            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
+            <td>${stock.volume.toLocaleString()}</td>
+            <td>${stock.id}</td>
             <td>
-                <button class="view-btn"    data-symbol="${stock.symbol}">查看</button>
-                <button class="update-btn"  data-symbol="${stock.symbol}">更新价格</button>
-                <button class="buy-btn"      data-symbol="${stock.symbol}" data-name="${stock.symbol}">购买</button>
+                <button class="view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查看</button>
+                <button class="update-btn" data-symbol="${stock.symbol}">更新价格</button>
+                <button class="buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
             </td>
         `;
             stockTableBody.appendChild(row);
-            console.log('添加股票行:', stock);
         });
 
         // 为查看按钮添加事件监听

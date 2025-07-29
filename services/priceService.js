@@ -207,9 +207,10 @@ class YahooFinanceService {
       }
     }
 
-    if (newStocksToInsert.length > 0) {
+      if (newStocksToInsert.length > 0) {
       try {
-        const insertQuery = `INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES ? ON DUPLICATE KEY UPDATE symbol=symbol`;
+        // 使用MySQL的INSERT IGNORE语法，忽略重复键错误
+        const insertQuery = `INSERT IGNORE INTO stocks (symbol, name, current_price, change_percent) VALUES ?`;
         const [insertResult] = await pool.query(insertQuery, [newStocksToInsert]);
         console.log(`Bulk inserted ${insertResult.affectedRows} new stocks.`);
         updatedCount += insertResult.affectedRows;

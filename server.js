@@ -4,7 +4,8 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 const path = require('path');
 const { getStockData, updateStockPrice, getBondData } = require('./alphaVantageService');
-const priceService = require('./services/priceService'); // 假设有一个价格服务模块
+const priceService = require('./services/priceService'); // 价格服务模块
+const portfolioService = require('./services/portfolioService'); // 投资组合服务模块
 
 // 中间件
 app.use(express.json());
@@ -59,17 +60,24 @@ apiRouter.get('/portfolio/overview', async (req, res) => {
     }
     
     const user = users[0];
-    await updateUserAssetValues(userId);
     
-    const [updatedUsers] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-    const updatedUser = updatedUsers[0];
+    // 直接使用用户表中的数据
+    const totalValue = parseFloat(user.total_assets) || 50000.00;
+    const totalReturn = parseFloat(user.total_return_rate) || 0.00;
+    const stockValue = parseFloat(user.stock_value) || 0.00;
+    const bondValue = parseFloat(user.bond_value) || 0.00;
+    const cashBalance = parseFloat(user.cash_balance) || 50000.00;
+    
+    console.log('返回投资组合概览:', {
+      totalValue, totalReturn, stockValue, bondValue, cashBalance
+    });
     
     res.json({
-      totalValue: parseFloat(updatedUser.total_assets),
-      totalReturn: parseFloat(updatedUser.total_return_rate),
-      stockValue: parseFloat(updatedUser.stock_value),
-      bondValue: parseFloat(updatedUser.bond_value),
-      cashBalance: parseFloat(updatedUser.cash_balance)
+      totalValue: totalValue,
+      totalReturn: totalReturn,
+      stockValue: stockValue,
+      bondValue: bondValue,
+      cashBalance: cashBalance
     });
   } catch (error) {
     console.error('获取投资组合概览错误:', error);
@@ -80,34 +88,75 @@ apiRouter.get('/portfolio/overview', async (req, res) => {
 // 获取投资组合
 apiRouter.get('/portfolio', async (req, res) => {
   try {
+    console.log('调用 /api/portfolio');
     const userId = 1;
     const [userInfo] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
     
+    // 检查portfolio表是否有数据
+    const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = ? AND status = 1', [userId]);
+    
+    if (portfolioCount[0].count === 0) {
+      // 如果没有资产数据，创建一些示例数据
+      console.log('没有资产数据，创建示例数据');
+      
+      // 获取一些股票和债券
+      const [stocks] = await pool.query('SELECT * FROM stocks LIMIT 3');
+      const [bonds] = await pool.query('SELECT * FROM bonds LIMIT 2');
+      
+      if (stocks.length > 0) {
+        // 添加示例股票资产
+        for (const stock of stocks) {
+          await pool.query(
+            'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+            [userId, 'stock', stock.id, stock.name, 10, stock.current_price * 0.95]
+          );
+        }
+      }
+      
+      if (bonds.length > 0) {
+        // 添加示例债券资产
+        for (const bond of bonds) {
+          await pool.query(
+            'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+            [userId, 'bond', bond.id, bond.name, 5, bond.current_price * 0.98]
+          );
+        }
+      }
+      
+      // 添加示例现金资产
+      await pool.query(
+        'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+        [userId, 'cash', 0, '现金', 10000, 1]
+      );
+    }
+    
+    // 获取资产数据
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 s.name, s.symbol, s.current_price, 'stock' as type
          FROM portfolio p
          JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-         WHERE p.status = 1
+         WHERE p.user_id = ? AND p.status = 1
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 b.name, b.symbol, b.current_price, 'bond' as type
          FROM portfolio p
          JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-         WHERE p.status = 1
+         WHERE p.user_id = ? AND p.status = 1
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
          FROM portfolio p
-         WHERE p.asset_type = 'cash' AND p.status = 1
+         WHERE p.asset_type = 'cash' AND p.user_id = ? AND p.status = 1
          )
         ) AS combined_results
-        ORDER BY purchase_date DESC`, []
+        ORDER BY purchase_date DESC`, [userId, userId, userId]
     );
     
+    console.log('投资组合查询结果:', portfolioItems.length);
     res.json({
       user: userInfo[0],
       assets: portfolioItems
@@ -124,20 +173,22 @@ apiRouter.get('/stocks', async (req, res) => {
     const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
     
     const formattedStocks = stocks.map(stock => {
-      const changePercent = parseFloat(stock.change_percent) || (Math.random() - 0.5) * 10;
+      // 生成随机的涨跌幅数据（-3%到+3%之间的随机值）
+      const changePercent = (Math.random() * 6 - 3).toFixed(2);
       
       return {
         id: stock.id,
         symbol: stock.symbol,
-        name: stock.name,
+        name: stock.name || stock.symbol,
         current_price: parseFloat(stock.current_price),
-        change_percent: changePercent,
-        volume: Math.floor(Math.random() * 1000000) + 100000,
-        market_cap: parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
+        change_percent: parseFloat(changePercent),
+        volume: stock.volume || Math.floor(Math.random() * 1000000) + 100000,
+        market_cap: stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
         updated_at: stock.last_updated || new Date()
       };
     });
     
+    console.log('返回股票列表:', formattedStocks);
     res.json(formattedStocks);
   } catch (error) {
     console.error('获取股票列表失败:', error);
@@ -150,23 +201,88 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
     
+    // 首先尝试从数据库获取股票数据
     const [stocks] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
     
     if (stocks.length === 0) {
+      // 如果数据库中没有该股票，尝试从Yahoo Finance API获取
+      console.log(`数据库中没有找到股票 ${symbol}，尝试从Yahoo Finance API获取`);
+      try {
+        const stockDataList = await priceService.fetchRealTimePrice([symbol]);
+        if (stockDataList && stockDataList.length > 0) {
+          const stockData = stockDataList[0];
+          // 将获取到的数据保存到数据库
+          await priceService.updateStocksInDatabase([stockData]);
+          
+          // 返回API获取的数据
+          return res.json({
+            id: 0, // 临时ID
+            symbol: stockData.symbol,
+            name: stockData.name || stockData.symbol,
+            current_price: parseFloat(stockData.current_price),
+            price: parseFloat(stockData.current_price),
+            change_percent: parseFloat(stockData.change_percent || 0),
+            volume: Math.floor(Math.random() * 1000000) + 100000, // API可能没有提供成交量
+            market_cap: parseFloat(stockData.current_price) * Math.floor(Math.random() * 1000000000), // API可能没有提供市值
+            updated_at: stockData.last_updated || new Date()
+          });
+        }
+      } catch (apiError) {
+        console.error(`从Yahoo Finance API获取股票 ${symbol} 数据失败:`, apiError);
+      }
+      
       return res.status(404).json({ error: '股票不存在' });
     }
     
     const stock = stocks[0];
-    const changePercent = parseFloat(stock.change_percent) || (Math.random() - 0.5) * 10;
+    
+    // 尝试从Yahoo Finance API获取最新数据
+    try {
+      const stockDataList = await priceService.fetchRealTimePrice([symbol]);
+      if (stockDataList && stockDataList.length > 0) {
+        const stockData = stockDataList[0];
+        // 更新数据库中的股票数据
+        await priceService.updateStocksInDatabase([stockData]);
+        
+        console.log(`从Yahoo Finance API获取到股票 ${symbol} 的最新数据`);
+        
+        // 返回API获取的最新数据
+        return res.json({
+          id: stock.id,
+          symbol: stockData.symbol,
+          name: stockData.name || stock.name || stockData.symbol,
+          current_price: parseFloat(stockData.current_price),
+          price: parseFloat(stockData.current_price),
+          change_percent: parseFloat(stockData.change_percent || 0),
+          volume: stock.volume || Math.floor(Math.random() * 1000000) + 100000,
+          market_cap: stock.market_cap || parseFloat(stockData.current_price) * Math.floor(Math.random() * 1000000000),
+          updated_at: new Date()
+        });
+      }
+    } catch (apiError) {
+      console.error(`从Yahoo Finance API获取股票 ${symbol} 数据失败:`, apiError);
+      // 如果API获取失败，使用数据库中的数据
+    }
+    
+    // 如果API获取失败或没有返回数据，使用数据库中的数据
+    console.log(`使用数据库中的股票 ${symbol} 数据`);
+    
+    // 生成更真实的涨跌幅数据（-3%到+3%之间的随机值）
+    const changePercent = (Math.random() * 6 - 3).toFixed(2);
+    
+    const volume = stock.volume || Math.floor(Math.random() * 1000000) + 100000;
+    const marketCap = stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000);
     
     res.json({
+      id: stock.id,
       symbol: stock.symbol,
-      name: stock.name,
+      name: stock.name || stock.symbol,
       current_price: parseFloat(stock.current_price),
       price: parseFloat(stock.current_price),
-      change_percent: changePercent,
-      volume: Math.floor(Math.random() * 1000000) + 100000,
-      market_cap: parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000)
+      change_percent: parseFloat(changePercent),
+      volume: volume,
+      market_cap: marketCap,
+      updated_at: stock.last_updated || new Date()
     });
   } catch (error) {
     console.error('获取单个股票数据失败:', error);
@@ -178,82 +294,10 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
 apiRouter.post('/stocks/buy', async (req, res) => {
   try {
     const { symbol, name, price, quantity } = req.body;
-    
-    if (!symbol || !price || !quantity || quantity <= 0) {
-      return res.status(400).json({ error: '参数不完整或无效' });
-    }
-    
     const userId = 1;
-    const totalCost = parseFloat(price) * parseFloat(quantity);
     
-    // 检查用户现金余额
-    const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) {
-      return res.status(404).json({ error: '用户不存在' });
-    }
-    
-    const currentCash = parseFloat(users[0].cash_balance);
-    
-    if (currentCash < totalCost) {
-      return res.status(400).json({ 
-        error: `现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}` 
-      });
-    }
-    
-    // 查找或创建股票记录
-    let [stockRecords] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
-    let stockId;
-    
-    if (stockRecords.length === 0) {
-      const [result] = await pool.query(
-        'INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES (?, ?, ?, ?)',
-        [symbol, name || symbol, price, 0.00]
-      );
-      stockId = result.insertId;
-    } else {
-      stockId = stockRecords[0].id;
-    }
-    
-    // 检查portfolio表中是否已有相同股票持仓
-    const [existingHoldings] = await pool.query(
-      'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
-      [userId, 'stock', stockId]
-    );
-    
-    if (existingHoldings.length > 0) {
-      // 更新现有持仓
-      const existing = existingHoldings[0];
-      const existingQuantity = parseFloat(existing.quantity);
-      const existingPrice = parseFloat(existing.purchase_price);
-      const newQuantity = existingQuantity + parseFloat(quantity);
-      
-      const newAvgPrice = ((existingQuantity * existingPrice) + (parseFloat(quantity) * parseFloat(price))) / newQuantity;
-      
-      await pool.query(
-        'UPDATE portfolio SET quantity = ?, purchase_price = ? WHERE id = ?',
-        [newQuantity, newAvgPrice, existing.id]
-      );
-    } else {
-      // 创建新持仓记录
-      await pool.query(
-        'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, NOW(), 1)',
-        [userId, 'stock', stockId, quantity, price]
-      );
-    }
-    
-    // 更新用户现金余额
-    await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
-    
-    // 更新用户资产总值
-    await updateUserAssetValues(userId);
-    
-    res.json({ 
-      success: true, 
-      message: '股票购买成功！',
-      totalCost: totalCost.toFixed(2),
-      symbol: symbol,
-      quantity: quantity
-    });
+    const result = await portfolioService.buyStock(userId, symbol, name, price, quantity);
+    res.json(result);
   } catch (error) {
     console.error('购买股票失败:', error);
     res.status(500).json({ error: '购买失败: ' + error.message });
@@ -327,83 +371,11 @@ apiRouter.get('/bonds/single/:symbol', async (req, res) => {
 // 购买债券
 apiRouter.post('/bonds/buy', async (req, res) => {
   try {
-    const { symbol, name, price, quantity } = req.body;
-    
-    if (!symbol || !price || !quantity || quantity <= 0) {
-      return res.status(400).json({ error: '参数不完整或无效' });
-    }
-    
+    const { symbol, name, price, quantity, faceValue, couponRate, maturityDate } = req.body;
     const userId = 1;
-    const totalCost = parseFloat(price) * parseFloat(quantity);
     
-    // 检查用户现金余额
-    const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) {
-      return res.status(404).json({ error: '用户不存在' });
-    }
-    
-    const currentCash = parseFloat(users[0].cash_balance);
-    
-    if (currentCash < totalCost) {
-      return res.status(400).json({ 
-        error: `现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}` 
-      });
-    }
-    
-    // 查找或创建债券记录
-    let [bondRecords] = await pool.query('SELECT * FROM bonds WHERE symbol = ?', [symbol]);
-    let bondId;
-    
-    if (bondRecords.length === 0) {
-      const [result] = await pool.query(
-        'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date) VALUES (?, ?, ?, ?, ?)',
-        [symbol, name || symbol, 1000.00, 3.50, '2030-12-31']
-      );
-      bondId = result.insertId;
-    } else {
-      bondId = bondRecords[0].id;
-    }
-    
-    // 检查portfolio表中是否已有相同债券持仓
-    const [existingHoldings] = await pool.query(
-      'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
-      [userId, 'bond', bondId]
-    );
-    
-    if (existingHoldings.length > 0) {
-      // 更新现有持仓
-      const existing = existingHoldings[0];
-      const existingQuantity = parseFloat(existing.quantity);
-      const existingPrice = parseFloat(existing.purchase_price);
-      const newQuantity = existingQuantity + parseFloat(quantity);
-      
-      const newAvgPrice = ((existingQuantity * existingPrice) + (parseFloat(quantity) * parseFloat(price))) / newQuantity;
-      
-      await pool.query(
-        'UPDATE portfolio SET quantity = ?, purchase_price = ? WHERE id = ?',
-        [newQuantity, newAvgPrice, existing.id]
-      );
-    } else {
-      // 创建新持仓记录
-      await pool.query(
-        'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, NOW(), 1)',
-        [userId, 'bond', bondId, quantity, price]
-      );
-    }
-    
-    // 更新用户现金余额
-    await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
-    
-    // 更新用户资产总值
-    await updateUserAssetValues(userId);
-    
-    res.json({ 
-      success: true, 
-      message: '债券购买成功！',
-      totalCost: totalCost.toFixed(2),
-      symbol: symbol,
-      quantity: quantity
-    });
+    const result = await portfolioService.buyBond(userId, symbol, name, price, quantity, faceValue, couponRate, maturityDate);
+    res.json(result);
   } catch (error) {
     console.error('购买债券失败:', error);
     res.status(500).json({ error: '购买失败: ' + error.message });
@@ -416,67 +388,8 @@ apiRouter.post('/portfolio/sell', async (req, res) => {
     const { assetId, quantity } = req.body;
     const userId = 1;
     
-    console.log('收到卖出请求:', { assetId, quantity, userId });
-    
-    if (!assetId || !quantity || quantity <= 0) {
-      return res.status(400).json({ error: '参数不完整或无效' });
-    }
-    
-    // 使用简单查询避免锁等待
-    const [assets] = await pool.query(
-      `SELECT p.*, s.current_price as stock_price, b.current_price as bond_price, b.face_value
-       FROM portfolio p
-       LEFT JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-       LEFT JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-       WHERE p.id = ? AND p.user_id = ? AND p.status = 1`,
-      [assetId, userId]
-    );
-    
-    if (assets.length === 0) {
-      return res.status(404).json({ error: '资产不存在或已卖出' });
-    }
-    
-    const asset = assets[0];
-    const currentQuantity = parseFloat(asset.quantity);
-    const sellQuantity = parseFloat(quantity);
-    
-    if (sellQuantity > currentQuantity) {
-      return res.status(400).json({ error: '卖出数量超过持有数量' });
-    }
-    
-    // 计算卖出价格
-    let currentPrice = parseFloat(asset.purchase_price);
-    
-    if (asset.asset_type === 'stock') {
-      currentPrice = parseFloat(asset.stock_price) || parseFloat(asset.purchase_price);
-    } else if (asset.asset_type === 'bond') {
-      currentPrice = parseFloat(asset.bond_price) || parseFloat(asset.face_value) || parseFloat(asset.purchase_price);
-    }
-    
-    const sellAmount = sellQuantity * currentPrice;
-    
-    // 直接执行更新操作，不使用事务避免锁等待
-    if (Math.abs(sellQuantity - currentQuantity) < 0.0001) {
-      // 全部卖出
-      await pool.query('UPDATE portfolio SET status = 0 WHERE id = ?', [assetId]);
-    } else {
-      // 部分卖出
-      const remainingQuantity = currentQuantity - sellQuantity;
-      await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [remainingQuantity, assetId]);
-    }
-    
-    // 更新现金余额
-    await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [sellAmount, userId]);
-    
-    console.log('卖出成功:', { sellAmount, sellQuantity });
-    
-    res.json({
-      success: true,
-      message: '卖出成功',
-      amount: sellAmount,
-      quantity: sellQuantity
-    });
-    
+    const result = await portfolioService.sellAsset(userId, assetId, quantity);
+    res.json(result);
   } catch (error) {
     console.error('卖出资产失败:', error);
     res.status(500).json({ error: '卖出失败: ' + error.message });
@@ -489,26 +402,8 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
     const { amount } = req.body;
     const userId = 1;
     
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: '充值金额无效' });
-    }
-    
-    if (amount > 1000000) {
-      return res.status(400).json({ error: '单次充值金额不能超过100万元' });
-    }
-    
-    // 更新用户现金余额
-    await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [amount, userId]);
-    
-    // 更新用户资产总值
-    await updateUserAssetValues(userId);
-    
-    res.json({
-      success: true,
-      message: '充值成功',
-      amount: parseFloat(amount).toFixed(2)
-    });
-    
+    const result = await portfolioService.rechargeCash(userId, amount);
+    res.json(result);
   } catch (error) {
     console.error('充值失败:', error);
     res.status(500).json({ error: '充值失败: ' + error.message });
@@ -520,32 +415,72 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
   try {
     const userId = 1;
     
+    // 检查portfolio表是否有数据
+    const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = ? AND status = 1', [userId]);
+    
+    if (portfolioCount[0].count === 0) {
+      // 如果没有资产数据，创建一些示例数据
+      console.log('没有资产数据，创建示例数据');
+      
+      // 获取一些股票和债券
+      const [stocks] = await pool.query('SELECT * FROM stocks LIMIT 2');
+      const [bonds] = await pool.query('SELECT * FROM bonds LIMIT 2');
+      
+      if (stocks.length > 0) {
+        // 添加示例股票资产
+        for (const stock of stocks) {
+          await pool.query(
+            'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+            [userId, 'stock', stock.id, stock.name, 10, stock.current_price * 0.95]
+          );
+        }
+      }
+      
+      if (bonds.length > 0) {
+        // 添加示例债券资产
+        for (const bond of bonds) {
+          await pool.query(
+            'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+            [userId, 'bond', bond.id, bond.name, 5, bond.current_price * 0.98]
+          );
+        }
+      }
+      
+      // 添加示例现金资产
+      await pool.query(
+        'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
+        [userId, 'cash', 0, '现金', 10000, 1]
+      );
+    }
+    
+    // 获取资产数据
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 s.name, s.symbol, s.current_price, 'stock' as type
          FROM portfolio p
          JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-         WHERE p.status = 1
+         WHERE p.user_id = ? AND p.status = 1
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 b.name, b.symbol, b.current_price, 'bond' as type
          FROM portfolio p
          JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-         WHERE p.status = 1
+         WHERE p.user_id = ? AND p.status = 1
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
                 '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
          FROM portfolio p
-         WHERE p.asset_type = 'cash' AND p.status = 1
+         WHERE p.asset_type = 'cash' AND p.user_id = ? AND p.status = 1
          )
         ) AS combined_results
         ORDER BY purchase_date DESC
-        LIMIT 5`, []
+        LIMIT 5`, [userId, userId, userId]
     );
     
+    console.log('返回最近资产:', portfolioItems.length);
     res.json({
       assets: portfolioItems
     });
@@ -558,22 +493,34 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
 // 获取投资组合表现数据
 apiRouter.get('/portfolio/performance', async (req, res) => {
   try {
+    // 获取用户当前资产总值
+    const [users] = await pool.query('SELECT total_assets FROM users WHERE id = 1');
+    const currentValue = users.length > 0 ? parseFloat(users[0].total_assets) : 50000;
+    
     // 生成模拟的历史表现数据
     const dates = [];
     const values = [];
     const baseValue = 50000;
+    const trend = (currentValue - baseValue) / 30; // 平均每天的变化趋势
     
     for (let i = 30; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       dates.push(date.toLocaleDateString('zh-CN'));
       
-      // 模拟价值变化
-      const randomChange = (Math.random() - 0.5) * 2000;
-      const value = baseValue + (30 - i) * 1000 + randomChange;
+      // 模拟价值变化，基于当前资产和趋势
+      const dayTrend = trend * (30 - i);
+      const randomChange = (Math.random() - 0.5) * 1000;
+      const value = baseValue + dayTrend + randomChange;
       values.push(Math.max(value, 30000));
     }
     
+    // 确保最后一天的值与当前资产总值匹配
+    if (values.length > 0) {
+      values[values.length - 1] = currentValue;
+    }
+    
+    console.log('返回投资组合表现数据');
     res.json({
       dates: dates,
       values: values
@@ -584,15 +531,7 @@ apiRouter.get('/portfolio/performance', async (req, res) => {
   }
 });
 
-// 获取股票列表
-apiRouter.get('/stocks', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM stocks');
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// 这个重复的端点已被删除
 
 // 获取债券列表
 apiRouter.get('/bonds', async (req, res) => {
@@ -861,11 +800,37 @@ apiRouter.get('/history', async (req, res) => {
                  stock_id
           FROM stock_history
           ORDER BY trade_date DESC
+          LIMIT 50
       `);
-      console.log('获取历史数据:', rows);
+      console.log('获取历史数据:', rows.length);
+      
+      // 如果没有历史数据，则返回股票表中的数据
+      if (rows.length === 0) {
+          const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
+          const formattedStocks = stocks.map(stock => {
+              const basePrice = parseFloat(stock.current_price);
+              const today = new Date();
+              const tradeDate = today.toISOString().split('T')[0];
+              
+              return {
+                  id: stock.id,
+                  symbol: stock.symbol,
+                  trade_date: tradeDate,
+                  open_price: (basePrice * 0.99).toFixed(2),
+                  high_price: (basePrice * 1.02).toFixed(2),
+                  low_price: (basePrice * 0.98).toFixed(2),
+                  close_price: basePrice.toFixed(2),
+                  volume: Math.floor(Math.random() * 10000000) + 1000000,
+                  stock_id: stock.id
+              };
+          });
+          console.log('返回模拟历史数据:', formattedStocks.length);
+          return res.json(formattedStocks);
+      }
+      
       res.json(rows);
   } catch (err) {
-      console.error(err);
+      console.error('获取历史数据错误:', err);
       res.status(500).json({ error: '服务器错误' });
   }
 });
@@ -877,12 +842,76 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   }
   console.log(`GET /api/stocks/${symbol}/history called`);
   try {
-    // This uses the Yahoo Finance service to get historical data
-    const historyData = await priceService.fetchHistoricalData(symbol);
-    if (!historyData || historyData.labels.length === 0) {
-      return res.status(404).json({ error: 'No historical data found for symbol' });
+    // 尝试从Yahoo Finance API获取历史数据
+    try {
+      console.log(`尝试从Yahoo Finance API获取 ${symbol} 的历史数据`);
+      const historyData = await priceService.fetchHistoricalData(symbol);
+      
+      if (historyData && historyData.labels && historyData.labels.length > 0) {
+        console.log(`成功从Yahoo Finance API获取到 ${symbol} 的历史数据`);
+        return res.json(historyData);
+      } else {
+        console.log(`Yahoo Finance API没有返回 ${symbol} 的有效历史数据`);
+      }
+    } catch (apiError) {
+      console.error(`从Yahoo Finance API获取 ${symbol} 的历史数据失败:`, apiError);
     }
-    res.json(historyData);
+    
+    // 如果API获取失败，尝试从数据库获取历史数据
+    const [historyData] = await pool.query(`
+      SELECT trade_date, open_price, high_price, low_price, close_price, volume
+      FROM stock_history
+      WHERE symbol = ?
+      ORDER BY trade_date ASC
+      LIMIT 30
+    `, [symbol]);
+    
+    if (historyData.length === 0) {
+      console.log(`没有找到 ${symbol} 的历史数据，生成模拟数据`);
+      
+      // 如果没有历史数据，生成模拟数据
+      const [stockInfo] = await pool.query('SELECT current_price FROM stocks WHERE symbol = ?', [symbol]);
+      
+      if (stockInfo.length === 0) {
+        return res.status(404).json({ error: '未找到该股票' });
+      }
+      
+      const basePrice = parseFloat(stockInfo[0].current_price);
+      const labels = [];
+      const values = [];
+      
+      // 生成过去30天的模拟数据
+      for (let i = 30; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('zh-CN'));
+        
+        // 生成当天价格（在基础价格上下10%波动）
+        const dailyChange = (Math.random() - 0.5) * 0.1;
+        const price = basePrice * (1 + dailyChange * i / 30);
+        values.push(price.toFixed(2));
+      }
+      
+      return res.json({
+        labels: labels,
+        values: values,
+        symbol: symbol
+      });
+    }
+    
+    // 格式化数据库中的历史数据
+    const labels = historyData.map(item => {
+      const date = new Date(item.trade_date);
+      return date.toLocaleDateString('zh-CN');
+    });
+    
+    const values = historyData.map(item => parseFloat(item.close_price));
+    
+    res.json({
+      labels: labels,
+      values: values,
+      symbol: symbol
+    });
   } catch (error) {
     console.error(`Error fetching history for ${symbol}:`, error);
     res.status(500).json({ error: error.message });
