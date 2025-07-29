@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function displayHistoricalChart(symbol) {
+        
         if (!symbol) {
             chartContainer.style.height = '0px'; // Collapse the container
             // A short delay allows the collapse animation to start before content disappears
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const chartData = await response.json();
             // Ensure you have a global StockChart class available
-            currentChart = new StockChart('historical-chart-container', chartData);
+            const currentChart = new StockChart('historical-chart-container', chartData);
         } catch (error) {
             chartContainer.innerHTML = `<p class="error-message">Could not load chart for ${symbol}: ${error.message}</p>`;
             console.error(error);

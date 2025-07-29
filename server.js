@@ -486,6 +486,9 @@ apiRouter.get('/history', async (req, res) => {
 
 apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   const { symbol } = req.params;
+  if (!/^[A-Z]{1,10}$/i.test(symbol)) {
+    return res.status(400).json({ error: 'Invalid symbol' });
+  }
   console.log(`GET /api/stocks/${symbol}/history called`);
   try {
     // This uses the Yahoo Finance service to get historical data
