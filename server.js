@@ -460,6 +460,29 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
   }
 });
 
+apiRouter.get('/history', async (req, res) => {
+  try {
+      const [rows] = await pool.query(`
+          SELECT idstock_history AS id,
+                 symbol,
+                 trade_date,
+                 open_price,
+                 high_price,
+                 low_price,
+                 close_price,
+                 volume,
+                 stock_id
+          FROM stock_history
+          ORDER BY trade_date DESC
+      `);
+      console.log('获取历史数据:', rows);
+      res.json(rows);
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: '服务器错误' });
+  }
+});
+
 // 挂载API路由
 app.use('/api', apiRouter);
 
