@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资组合管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>投资组合管理系统</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html" class="active">首页</a></li>
+                <li><a href="portfolio.html">投资组合</a></li>
+                <li><a href="stock.html">股票市场</a></li>
+                <li><a href="bond.html">债券市场</a></li>
+                <li><a href="add_asset.html">添加资产</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="overview">
+            <h2>投资组合概览</h2>
+            <div class="overview-cards">
+                <div class="card">
+                    <h3>总资产价值</h3>
+                    <p id="total-value">加载中...</p>
+                </div>
+                <div class="card">
+                    <h3>总收益率</h3>
+                    <p id="total-return">加载中...</p>
+                </div>
+            </div>
+        </section>
+        <section id="performance">
+            <h2>投资组合表现</h2>
+            <canvas id="performance-chart"></canvas>
+        </section>
+        <section id="recent-assets">
+            <h2>最近添加的资产</h2>
+            <div id="recent-assets-list">加载中...</div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 投资组合管理系统</p>
+    </footer>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
