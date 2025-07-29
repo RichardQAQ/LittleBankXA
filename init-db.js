@@ -10,12 +10,12 @@ async function initDatabase() {
 
     // 创建数据库
     console.log('尝试创建数据库...');
-    await pool.query('CREATE DATABASE IF NOT EXISTS investment_system');
+    await pool.query('CREATE DATABASE IF NOT EXISTS ourtest');
     console.log('数据库创建成功或已存在');
 
     // 选择数据库
     console.log('尝试选择数据库...');
-    await pool.query('USE investment_system');
+    await pool.query('USE ourtest');
     console.log('数据库选择成功');
 
     // 创建用户表

@@ -6,6 +6,8 @@
     <title>投资组合管理系统</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
     <header>
@@ -15,6 +17,7 @@
                 <li><a href="index.html" class="active">仪表盘</a></li>
                 <li><a href="portfolio.html">投资组合</a></li>
                 <li><a href="add_asset.html">添加资产</a></li>
+                
             </ul>
         </nav>
     </header>
@@ -32,6 +35,16 @@
                 </div>
             </div>
         </section>
+        
+        <!-- 新增资产类型占比图表 -->
+        <section id="asset-allocation">
+            <h2>资产类型占比</h2>
+            <div class="chart-container" style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                <div id="asset-value-chart" style="width: 48%; height: 400px;"></div>
+                <div id="asset-return-chart" style="width: 48%; height: 400px;"></div>
+            </div>
+        </section>
+        
         <section id="performance">
             <h2>投资组合表现</h2>
             <canvas id="performance-chart"></canvas>
@@ -48,6 +61,9 @@
     <footer>
         <p>&copy; 2024 投资组合管理系统</p>
     </footer>
-    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard.js"></script> 
+    <!-- 新增资产占比图表JS -->
+    <script src="js/assetCharts.js"></script>
+     <!-- <script src="server.js"></script> -->
 </body>
 </html>

@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('./db');
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 4002;
 const path = require('path');
 
 // 中间件
@@ -11,6 +11,96 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API路由
 const apiRouter = express.Router();
+
+// 挂载API路由
+app.use('/api', apiRouter);
+
+// 前端路由 - 使用try-catch包装
+app.get('*', (req, res) => {
+  try {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } catch (error) {
+    console.error('前端路由错误:', error);
+    res.status(404).send('Not Found');
+  }
+});
+
+
+
+
+
+
+apiRouter.get('/testjs', async(req, res) => { 
+  console.log('调用 testjs');
+  //const mysql = require('mysql2/promise');
+    
+  try {
+      // 创建数据库连接
+      //const connection = await mysql.createConnection(pool.dbConfig);
+      
+      // 查询股票数据
+      const [stocks] = await pool.execute(`
+          SELECT 
+              SUM(b.current_price * a.quantity) AS total_value,
+              SUM((b.current_price - a.purchase_price) * a.quantity) AS total_return
+          FROM (select * from portfolio where asset_type = 'stock' and  user_id =1) AS a  inner join
+          stocks as b  on  a.asset_id = b.id
+      `);
+      
+      // 查询债券数据
+      const [bonds] = await pool.execute(`
+          SELECT 
+              SUM(b.current_price * a.quantity) AS total_value,
+              SUM((b.current_price - a.purchase_price) * a.quantity) AS total_return
+          FROM (select * from portfolio where asset_type = 'bonds' and  user_id =1) AS a  inner join
+          bonds as b  on  a.asset_id = b.id
+      `);
+      
+      // 关闭数据库连接
+      //await connection.end();
+      
+      // 计算总数据
+      const stockValue = parseFloat(stocks[0].total_value) || 0;
+      const bondValue = parseFloat(bonds[0].total_value) || 0;
+      const stockReturn = parseFloat(stocks[0].total_return) || 0;
+      const bondReturn = parseFloat(bonds[0].total_return) || 0;
+      
+      // 计算总资产和总收益
+      const totalValue = stockValue + bondValue;
+      const totalReturn = stockReturn + bondReturn;
+
+
+      console.log('股票总价值:', stockValue, '债券总价值:', bondValue);
+      console.log('股票总收益:', stockReturn, '债券总收益:', bondReturn);
+      
+      let responseData = {
+          valueData: {
+              stock: stockValue,
+              bond: bondValue,
+              stockPercentage: totalValue > 0 ? (stockValue / totalValue * 100).toFixed(2) : 0,
+              bondPercentage: totalValue > 0 ? (bondValue / totalValue * 100).toFixed(2) : 0,
+              totalValue: totalValue
+          },
+          returnData: {
+              stockReturn: stockReturn,
+              bondReturn: bondReturn,
+              stockReturnPercentage: totalReturn !== 0 ? (stockReturn / totalReturn * 100).toFixed(2) : 0,
+              bondReturnPercentage: totalReturn !== 0 ? (bondReturn / totalReturn * 100).toFixed(2) : 0,
+              totalReturn: totalReturn
+          }
+      };
+      res.json(responseData);
+      console.log('响应数据:', responseData);
+  } catch (error) {
+      console.error('数据库查询失败:', error);
+      throw error;
+  }
+});
+
+
+
+
+
 
 // 测试API
 apiRouter.get('/test', (req, res) => {
@@ -325,18 +415,7 @@ app.get('/history/:symbol', async (req, res) => {
 
 
 
-// 挂载API路由
-app.use('/api', apiRouter);
 
-// 前端路由 - 使用try-catch包装
-app.get('*', (req, res) => {
-  try {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } catch (error) {
-    console.error('前端路由错误:', error);
-    res.status(404).send('Not Found');
-  }
-});
 
 // 启动服务器
 app.listen(PORT, () => {
