@@ -21,13 +21,64 @@ document.addEventListener('DOMContentLoaded', function() {
             // 填充股票代码和名称
             const symbol = urlParams.get('symbol');
             const name = urlParams.get('name');
+            const price = urlParams.get('price');
             if (symbol) document.getElementById('symbol').value = symbol;
             if (name) document.getElementById('name').value = name;
+            if (price) document.getElementById('purchase-price').value = price;
+        }
+    }
+
+    // 从localStorage填充表单（来自股票或债券页面的跳转）
+    function fillFormFromStorage() {
+        const prefilledData = localStorage.getItem('prefilledAsset');
+        if (prefilledData) {
+            try {
+                const assetData = JSON.parse(prefilledData);
+                
+                // 设置资产类型
+                document.getElementById('asset-type').value = assetData.type;
+                
+                // 填充基本信息
+                if (assetData.symbol) document.getElementById('symbol').value = assetData.symbol;
+                if (assetData.name) document.getElementById('name').value = assetData.name;
+                if (assetData.price) document.getElementById('purchase-price').value = assetData.price;
+                
+                // 根据资产类型显示/隐藏相应字段
+                if (assetData.type === 'bond') {
+                    bondSpecificFields.style.display = 'block';
+                    document.getElementById('face-value').required = true;
+                    document.getElementById('coupon-rate').required = true;
+                    document.getElementById('maturity-date').required = true;
+                    
+                    // 填充债券特有信息
+                    if (assetData.faceValue) document.getElementById('face-value').value = assetData.faceValue;
+                    if (assetData.couponRate) document.getElementById('coupon-rate').value = assetData.couponRate;
+                    if (assetData.maturityDate) {
+                        document.getElementById('maturity-date').value = assetData.maturityDate;
+                        console.log('填充到期日期:', assetData.maturityDate);
+                    }
+                } else {
+                    bondSpecificFields.style.display = 'none';
+                    document.getElementById('face-value').required = false;
+                    document.getElementById('coupon-rate').required = false;
+                    document.getElementById('maturity-date').required = false;
+                }
+                
+                // 清除localStorage中的数据
+                localStorage.removeItem('prefilledAsset');
+                
+                // 显示提示信息
+                showMessage(`已自动填充${assetData.type === 'stock' ? '股票' : '债券'}信息，请确认数量后提交`, 'info');
+                
+            } catch (error) {
+                console.error('解析预填充数据失败:', error);
+            }
         }
     }
 
     // 页面加载时填充表单
     fillFormFromUrl();
+    fillFormFromStorage();
 
     // 监听资产类型变化
     assetTypeSelect.addEventListener('change', function() {
@@ -95,7 +146,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 显示消息
     function showMessage(text, type = 'info') {
-        formMessage.className = type === 'error' ? 'error-message' : 'success-message';
+        if (type === 'error') {
+            formMessage.className = 'error-message';
+        } else if (type === 'success') {
+            formMessage.className = 'success-message';
+        } else {
+            formMessage.className = 'info-message';
+        }
+        
         formMessage.textContent = text;
         formMessage.style.display = 'block';
 

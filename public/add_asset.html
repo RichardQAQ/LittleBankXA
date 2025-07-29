@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>添加资产 - 投资组合管理系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .info-message {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -49,12 +75,14 @@
 
                 <div class="form-group">
                     <label for="purchase-price">购买价格</label>
-                    <input type="number" id="purchase-price" name="purchasePrice" step="0.01" min="0.01" required placeholder="例如: 180.50">
+                    <input type="number" id="purchase-price" name="purchasePrice" step="0.01" min="0.01" required placeholder="例如: 180.50" readonly>
+                    <small>价格将根据实时行情自动填充</small>
                 </div>
 
                 <div class="form-group">
                     <label for="purchase-date">购买日期</label>
-                    <input type="date" id="purchase-date" name="purchaseDate" required>
+                    <input type="date" id="purchase-date" name="purchaseDate" required readonly>
+                    <small>使用当前日期</small>
                 </div>
 
                 <!-- 债券特有字段 -->

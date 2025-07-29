@@ -19,142 +19,533 @@ apiRouter.get('/test', (req, res) => {
   res.json({ message: 'API is working!' });
 });
 
+// 获取用户信息
+apiRouter.get('/user', async (req, res) => {
+  try {
+    const userId = 1;
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: '未找到用户' });
+    }
+    
+    res.json(users[0]);
+  } catch (error) {
+    console.error('获取用户信息错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 获取投资组合概览
 apiRouter.get('/portfolio/overview', async (req, res) => {
   try {
-    console.log('调用 /api/portfolio/overview');
-
+    const userId = 1;
     
-    // 获取所有资产
-    console.log('执行SQL查询获取资产');
-    const [portfolioItems] = await pool.query(
-      `SELECT p.*, s.current_price as stock_price, b.current_price as bond_price
-       FROM portfolio p
-       LEFT JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-       LEFT JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-       `
-    );
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
     
-    console.log('查询结果:', portfolioItems);
-    // 计算总资产价值和总收益率
-    let totalValue = 0;
-    let totalCost = 0;
-    
-    portfolioItems.forEach(item => {
-      const currentPrice = item.asset_type === 'stock' ? item.stock_price : item.bond_price;
-      const marketValue = currentPrice * item.quantity;
-      const cost = item.purchase_price * item.quantity;
+    if (users.length === 0) {
+      await pool.query(
+        'INSERT INTO users (id, username, total_assets, stock_value, bond_value, cash_balance, total_return_rate) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [1, '张三', 50000.00, 0.00, 0.00, 50000.00, 0.00]
+      );
       
-      totalValue += marketValue;
-      totalCost += cost;
+      return res.json({
+        totalValue: 50000.00,
+        totalReturn: 0.00,
+        stockValue: 0.00,
+        bondValue: 0.00,
+        cashBalance: 50000.00
+      });
+    }
+    
+    const user = users[0];
+    await updateUserAssetValues(userId);
+    
+    const [updatedUsers] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    const updatedUser = updatedUsers[0];
+    
+    res.json({
+      totalValue: parseFloat(updatedUser.total_assets),
+      totalReturn: parseFloat(updatedUser.total_return_rate),
+      stockValue: parseFloat(updatedUser.stock_value),
+      bondValue: parseFloat(updatedUser.bond_value),
+      cashBalance: parseFloat(updatedUser.cash_balance)
     });
-    
-    const totalReturn = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
-    
-    const responseData = {
-      totalValue: totalValue,
-      totalReturn: totalReturn
-    };
-    console.log('准备发送响应:', responseData);
-    res.json(responseData);
-    console.log('响应发送完成');
   } catch (error) {
     console.error('获取投资组合概览错误:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 获取股票实时数据
-apiRouter.get('/stocks/:symbol', async (req, res) => {
+// 获取投资组合
+apiRouter.get('/portfolio', async (req, res) => {
+  try {
+    const userId = 1;
+    const [userInfo] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    
+    const [portfolioItems] = await pool.query(
+      `SELECT * FROM (
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                s.name, s.symbol, s.current_price, 'stock' as type
+         FROM portfolio p
+         JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
+         WHERE p.status = 1
+         )
+        UNION ALL
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                b.name, b.symbol, b.current_price, 'bond' as type
+         FROM portfolio p
+         JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
+         WHERE p.status = 1
+         )
+        UNION ALL
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
+         FROM portfolio p
+         WHERE p.asset_type = 'cash' AND p.status = 1
+         )
+        ) AS combined_results
+        ORDER BY purchase_date DESC`, []
+    );
+    
+    res.json({
+      user: userInfo[0],
+      assets: portfolioItems
+    });
+  } catch (error) {
+    console.error('获取投资组合错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取股票列表
+apiRouter.get('/stocks', async (req, res) => {
+  try {
+    const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
+    
+    const formattedStocks = stocks.map(stock => {
+      const changePercent = parseFloat(stock.change_percent) || (Math.random() - 0.5) * 10;
+      
+      return {
+        id: stock.id,
+        symbol: stock.symbol,
+        name: stock.name,
+        current_price: parseFloat(stock.current_price),
+        change_percent: changePercent,
+        volume: Math.floor(Math.random() * 1000000) + 100000,
+        market_cap: parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
+        updated_at: stock.last_updated || new Date()
+      };
+    });
+    
+    res.json(formattedStocks);
+  } catch (error) {
+    console.error('获取股票列表失败:', error);
+    res.status(500).json({ error: '获取股票列表失败' });
+  }
+});
+
+// 获取单个股票数据
+apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const stockData = await getStockData(symbol);
-    res.json(stockData);
+    
+    const [stocks] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
+    
+    if (stocks.length === 0) {
+      return res.status(404).json({ error: '股票不存在' });
+    }
+    
+    const stock = stocks[0];
+    const changePercent = parseFloat(stock.change_percent) || (Math.random() - 0.5) * 10;
+    
+    res.json({
+      symbol: stock.symbol,
+      name: stock.name,
+      current_price: parseFloat(stock.current_price),
+      price: parseFloat(stock.current_price),
+      change_percent: changePercent,
+      volume: Math.floor(Math.random() * 1000000) + 100000,
+      market_cap: parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000)
+    });
   } catch (error) {
-    console.error('获取股票数据失败:', error);
+    console.error('获取单个股票数据失败:', error);
     res.status(500).json({ error: '获取股票数据失败' });
   }
 });
 
-// 获取债券实时数据
-apiRouter.get('/bonds/:symbol', async (req, res) => {
+// 购买股票
+apiRouter.post('/stocks/buy', async (req, res) => {
   try {
-    const { symbol } = req.params;
-    const bondData = await getBondData(symbol);
-    res.json(bondData);
-  } catch (error) {
-    console.error('获取债券数据失败:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 更新债券价格
-apiRouter.post('/bonds/:symbol/update', async (req, res) => {
-  try {
-    const { symbol } = req.params;
-    const bondData = await getBondData(symbol);
-    const newPrice = bondData.currentPrice;
-    const now = new Date();
+    const { symbol, name, price, quantity } = req.body;
     
-    // 检查债券是否存在
-    const [bondExists] = await pool.query('SELECT id FROM bonds WHERE symbol = ?', [symbol]);
-    if (bondExists.length > 0) {
-      // 更新现有债券价格
+    if (!symbol || !price || !quantity || quantity <= 0) {
+      return res.status(400).json({ error: '参数不完整或无效' });
+    }
+    
+    const userId = 1;
+    const totalCost = parseFloat(price) * parseFloat(quantity);
+    
+    // 检查用户现金余额
+    const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+    
+    const currentCash = parseFloat(users[0].cash_balance);
+    
+    if (currentCash < totalCost) {
+      return res.status(400).json({ 
+        error: `现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}` 
+      });
+    }
+    
+    // 查找或创建股票记录
+    let [stockRecords] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
+    let stockId;
+    
+    if (stockRecords.length === 0) {
+      const [result] = await pool.query(
+        'INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES (?, ?, ?, ?)',
+        [symbol, name || symbol, price, 0.00]
+      );
+      stockId = result.insertId;
+    } else {
+      stockId = stockRecords[0].id;
+    }
+    
+    // 检查portfolio表中是否已有相同股票持仓
+    const [existingHoldings] = await pool.query(
+      'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
+      [userId, 'stock', stockId]
+    );
+    
+    if (existingHoldings.length > 0) {
+      // 更新现有持仓
+      const existing = existingHoldings[0];
+      const existingQuantity = parseFloat(existing.quantity);
+      const existingPrice = parseFloat(existing.purchase_price);
+      const newQuantity = existingQuantity + parseFloat(quantity);
+      
+      const newAvgPrice = ((existingQuantity * existingPrice) + (parseFloat(quantity) * parseFloat(price))) / newQuantity;
+      
       await pool.query(
-        'UPDATE bonds SET current_price = ?, last_updated = ? WHERE symbol = ?',
-        [newPrice, now, symbol]
+        'UPDATE portfolio SET quantity = ?, purchase_price = ? WHERE id = ?',
+        [newQuantity, newAvgPrice, existing.id]
       );
     } else {
-      // 创建新债券
+      // 创建新持仓记录
       await pool.query(
-        'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current_price, last_updated) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [symbol, bondData.name, bondData.faceValue, bondData.couponRate, bondData.maturityDate, newPrice, now]
+        'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, NOW(), 1)',
+        [userId, 'stock', stockId, quantity, price]
       );
     }
     
-    res.json({ success: true, message: `债券 ${symbol} 价格已更新为 ¥${newPrice}` });
+    // 更新用户现金余额
+    await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
+    
+    // 更新用户资产总值
+    await updateUserAssetValues(userId);
+    
+    res.json({ 
+      success: true, 
+      message: '股票购买成功！',
+      totalCost: totalCost.toFixed(2),
+      symbol: symbol,
+      quantity: quantity
+    });
   } catch (error) {
-    console.error('更新债券价格失败:', error);
-    res.status(500).json({ error: error.message });
+    console.error('购买股票失败:', error);
+    res.status(500).json({ error: '购买失败: ' + error.message });
   }
 });
 
-// 更新股票价格
-apiRouter.post('/stocks/:symbol/update', async (req, res) => {
+// 获取债券列表
+apiRouter.get('/bonds', async (req, res) => {
+  try {
+    const [bonds] = await pool.query('SELECT * FROM bonds ORDER BY symbol');
+    
+    const formattedBonds = bonds.map(bond => {
+      const changePercent = (Math.random() - 0.5) * 2;
+      const currentPrice = parseFloat(bond.current_price) || parseFloat(bond.face_value);
+      
+      return {
+        id: bond.id,
+        symbol: bond.symbol,
+        name: bond.name,
+        face_value: parseFloat(bond.face_value) || 1000.00,
+        coupon_rate: parseFloat(bond.coupon_rate) || 0.00,
+        maturity_date: bond.maturity_date,
+        current_price: currentPrice,
+        change_percent: changePercent,
+        rating: 'AAA',
+        issuer: '政府',
+        updated_at: bond.updated_at || new Date()
+      };
+    });
+    
+    res.json(formattedBonds);
+  } catch (error) {
+    console.error('获取债券列表失败:', error);
+    res.status(500).json({ error: '获取债券列表失败' });
+  }
+});
+
+// 获取单个债券数据
+apiRouter.get('/bonds/single/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    await updateStockPrice(pool, symbol);
-    res.json({ success: true, message: `股票 ${symbol} 价格已更新` });
+    
+    const [bonds] = await pool.query('SELECT * FROM bonds WHERE symbol = ?', [symbol]);
+    
+    if (bonds.length === 0) {
+      return res.status(404).json({ error: '债券不存在' });
+    }
+    
+    const bond = bonds[0];
+    const changePercent = (Math.random() - 0.5) * 2;
+    const currentPrice = parseFloat(bond.current_price) || parseFloat(bond.face_value);
+    
+    res.json({
+      symbol: bond.symbol,
+      name: bond.name,
+      current_price: currentPrice,
+      price: currentPrice,
+      coupon_rate: parseFloat(bond.coupon_rate),
+      face_value: parseFloat(bond.face_value),
+      maturity_date: bond.maturity_date,
+      rating: 'AAA',
+      issuer: '政府',
+      change_percent: changePercent
+    });
   } catch (error) {
-    console.error('更新股票价格失败:', error);
-    res.status(500).json({ error: '更新股票价格失败' });
+    console.error('获取单个债券数据失败:', error);
+    res.status(500).json({ error: '获取债券数据失败' });
   }
 });
 
-// 获取最近添加的资产
+// 购买债券
+apiRouter.post('/bonds/buy', async (req, res) => {
+  try {
+    const { symbol, name, price, quantity } = req.body;
+    
+    if (!symbol || !price || !quantity || quantity <= 0) {
+      return res.status(400).json({ error: '参数不完整或无效' });
+    }
+    
+    const userId = 1;
+    const totalCost = parseFloat(price) * parseFloat(quantity);
+    
+    // 检查用户现金余额
+    const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+    
+    const currentCash = parseFloat(users[0].cash_balance);
+    
+    if (currentCash < totalCost) {
+      return res.status(400).json({ 
+        error: `现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}` 
+      });
+    }
+    
+    // 查找或创建债券记录
+    let [bondRecords] = await pool.query('SELECT * FROM bonds WHERE symbol = ?', [symbol]);
+    let bondId;
+    
+    if (bondRecords.length === 0) {
+      const [result] = await pool.query(
+        'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date) VALUES (?, ?, ?, ?, ?)',
+        [symbol, name || symbol, 1000.00, 3.50, '2030-12-31']
+      );
+      bondId = result.insertId;
+    } else {
+      bondId = bondRecords[0].id;
+    }
+    
+    // 检查portfolio表中是否已有相同债券持仓
+    const [existingHoldings] = await pool.query(
+      'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
+      [userId, 'bond', bondId]
+    );
+    
+    if (existingHoldings.length > 0) {
+      // 更新现有持仓
+      const existing = existingHoldings[0];
+      const existingQuantity = parseFloat(existing.quantity);
+      const existingPrice = parseFloat(existing.purchase_price);
+      const newQuantity = existingQuantity + parseFloat(quantity);
+      
+      const newAvgPrice = ((existingQuantity * existingPrice) + (parseFloat(quantity) * parseFloat(price))) / newQuantity;
+      
+      await pool.query(
+        'UPDATE portfolio SET quantity = ?, purchase_price = ? WHERE id = ?',
+        [newQuantity, newAvgPrice, existing.id]
+      );
+    } else {
+      // 创建新持仓记录
+      await pool.query(
+        'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, NOW(), 1)',
+        [userId, 'bond', bondId, quantity, price]
+      );
+    }
+    
+    // 更新用户现金余额
+    await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
+    
+    // 更新用户资产总值
+    await updateUserAssetValues(userId);
+    
+    res.json({ 
+      success: true, 
+      message: '债券购买成功！',
+      totalCost: totalCost.toFixed(2),
+      symbol: symbol,
+      quantity: quantity
+    });
+  } catch (error) {
+    console.error('购买债券失败:', error);
+    res.status(500).json({ error: '购买失败: ' + error.message });
+  }
+});
+
+// 卖出资产
+apiRouter.post('/portfolio/sell', async (req, res) => {
+  try {
+    const { assetId, quantity } = req.body;
+    const userId = 1;
+    
+    console.log('收到卖出请求:', { assetId, quantity, userId });
+    
+    if (!assetId || !quantity || quantity <= 0) {
+      return res.status(400).json({ error: '参数不完整或无效' });
+    }
+    
+    // 使用简单查询避免锁等待
+    const [assets] = await pool.query(
+      `SELECT p.*, s.current_price as stock_price, b.current_price as bond_price, b.face_value
+       FROM portfolio p
+       LEFT JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
+       LEFT JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
+       WHERE p.id = ? AND p.user_id = ? AND p.status = 1`,
+      [assetId, userId]
+    );
+    
+    if (assets.length === 0) {
+      return res.status(404).json({ error: '资产不存在或已卖出' });
+    }
+    
+    const asset = assets[0];
+    const currentQuantity = parseFloat(asset.quantity);
+    const sellQuantity = parseFloat(quantity);
+    
+    if (sellQuantity > currentQuantity) {
+      return res.status(400).json({ error: '卖出数量超过持有数量' });
+    }
+    
+    // 计算卖出价格
+    let currentPrice = parseFloat(asset.purchase_price);
+    
+    if (asset.asset_type === 'stock') {
+      currentPrice = parseFloat(asset.stock_price) || parseFloat(asset.purchase_price);
+    } else if (asset.asset_type === 'bond') {
+      currentPrice = parseFloat(asset.bond_price) || parseFloat(asset.face_value) || parseFloat(asset.purchase_price);
+    }
+    
+    const sellAmount = sellQuantity * currentPrice;
+    
+    // 直接执行更新操作，不使用事务避免锁等待
+    if (Math.abs(sellQuantity - currentQuantity) < 0.0001) {
+      // 全部卖出
+      await pool.query('UPDATE portfolio SET status = 0 WHERE id = ?', [assetId]);
+    } else {
+      // 部分卖出
+      const remainingQuantity = currentQuantity - sellQuantity;
+      await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [remainingQuantity, assetId]);
+    }
+    
+    // 更新现金余额
+    await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [sellAmount, userId]);
+    
+    console.log('卖出成功:', { sellAmount, sellQuantity });
+    
+    res.json({
+      success: true,
+      message: '卖出成功',
+      amount: sellAmount,
+      quantity: sellQuantity
+    });
+    
+  } catch (error) {
+    console.error('卖出资产失败:', error);
+    res.status(500).json({ error: '卖出失败: ' + error.message });
+  }
+});
+
+// 充值现金
+apiRouter.post('/portfolio/recharge', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const userId = 1;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: '充值金额无效' });
+    }
+    
+    if (amount > 1000000) {
+      return res.status(400).json({ error: '单次充值金额不能超过100万元' });
+    }
+    
+    // 更新用户现金余额
+    await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [amount, userId]);
+    
+    // 更新用户资产总值
+    await updateUserAssetValues(userId);
+    
+    res.json({
+      success: true,
+      message: '充值成功',
+      amount: parseFloat(amount).toFixed(2)
+    });
+    
+  } catch (error) {
+    console.error('充值失败:', error);
+    res.status(500).json({ error: '充值失败: ' + error.message });
+  }
+});
+
+// 获取最近资产
 apiRouter.get('/portfolio/recent', async (req, res) => {
   try {
-    console.log('调用 /api/portfolio/recent');
-
+    const userId = 1;
     
-    // 获取最近5个资产
-    console.log('执行SQL查询获取最近资产');
     const [portfolioItems] = await pool.query(
-        `(SELECT p.*, s.name, s.symbol, s.current_price, 'stock' as type
-       FROM portfolio p
+      `SELECT * FROM (
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                s.name, s.symbol, s.current_price, 'stock' as type
+         FROM portfolio p
          JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
+         WHERE p.status = 1
          )
-         UNION ALL
-         (SELECT p.*, b.name, b.symbol, b.current_price, 'bond' as type
+        UNION ALL
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                b.name, b.symbol, b.current_price, 'bond' as type
          FROM portfolio p
          JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
+         WHERE p.status = 1
          )
-         ORDER BY purchase_date DESC
-         LIMIT 5`
-        , []
-      );
+        UNION ALL
+        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
+                '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
+         FROM portfolio p
+         WHERE p.asset_type = 'cash' AND p.status = 1
+         )
+        ) AS combined_results
+        ORDER BY purchase_date DESC
+        LIMIT 5`, []
+    );
     
-    console.log('最近资产查询结果:', portfolioItems);
     res.json({
       assets: portfolioItems
     });
@@ -167,26 +558,20 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
 // 获取投资组合表现数据
 apiRouter.get('/portfolio/performance', async (req, res) => {
   try {
-    // 这里简化处理，返回模拟数据
-    // 实际应用中应该根据历史数据计算
+    // 生成模拟的历史表现数据
     const dates = [];
     const values = [];
+    const baseValue = 50000;
     
-    // 生成过去30天的日期和模拟价值
-    const today = new Date();
     for (let i = 30; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      dates.push(date.toLocaleDateString('zh-CN'));
       
-      // 模拟价值，起始值为10000，每天随机波动
-      if (i === 30) {
-        values.push(10000);
-      } else {
-        const lastValue = values[values.length - 1];
-        const change = lastValue * (Math.random() * 0.02 - 0.01); // -1% 到 +1% 的波动
-        values.push(lastValue + change);
-      }
+      // 模拟价值变化
+      const randomChange = (Math.random() - 0.5) * 2000;
+      const value = baseValue + (30 - i) * 1000 + randomChange;
+      values.push(Math.max(value, 30000));
     }
     
     res.json({
@@ -194,6 +579,7 @@ apiRouter.get('/portfolio/performance', async (req, res) => {
       values: values
     });
   } catch (error) {
+    console.error('获取表现数据错误:', error);
     res.status(500).json({ error: error.message });
   }
 });
