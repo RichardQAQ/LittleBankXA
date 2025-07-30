@@ -1,11 +1,12 @@
 # LittleBankXA
 
-A financial portfolio management application. This project is designed to demonstrate building a REST API and a web front-end to manage a financial portfolio containing stocks, bonds, cash, etc.
+A financial portfolio management application designed to demonstrate building a full-stack web application with a REST API backend and a user-friendly web front-end. This system allows users to manage a financial portfolio containing stocks and bonds, track performance with real-time data, and simulate trading activities.
 
 ## Table of Contents
 
 * [About the Project](#about-the-project)
   * [Built With](#built-with)
+* [Features](#features)
 * [Getting Started](#getting-started)
   * [Prerequisites](#prerequisites)
   * [Installation](#installation)
@@ -20,57 +21,91 @@ A financial portfolio management application. This project is designed to demons
 
 This project challenges the team to design and build an application to manage a financial portfolio. The primary goal is to create a Portfolio Management REST API that allows saving and retrieving records describing the contents of a financial portfolio.
 
-A web front-end will be built to interact with the API, allowing users to:
-*   Browse a portfolio
-*   View the performance of the portfolio (ideally in some graphical manner)
-*   Add items to the portfolio
-*   Remove items from the portfolio
+A web front-end is built to interact with the API, allowing users to:
+*   Browse a portfolio of assets.
+*   View the performance of the portfolio with graphical charts.
+*   Add new stocks and bonds to the portfolio.
+*   Remove items from the portfolio.
 
 ### Built With
 
-This section should list any major frameworks that you used to build your project. Leave this blank if you would not like to disclose this information.
+This project was built using modern web technologies for both the backend and frontend.
+*   [Node.js](https://nodejs.org/)
+*   [Express.js](https://expressjs.com/)
+*   [MySQL2](https://github.com/sidorares/node-mysql2)
+*   [Chart.js](https://www.chartjs.org/)
+*   HTML5 & CSS3
 
-*   [Framework 1](https://example.com)
-*   [Framework 2](https://example.com)
-*   [Framework 3](https://example.com)
+## Features
+
+*   **Comprehensive Dashboard:** Get a high-level overview of your entire portfolio, including total asset value, cash balance, and graphical charts illustrating asset allocation.
+*   **Detailed Portfolio Management:** View a complete list of all owned stocks and bonds with details on quantity, purchase price, current market value, and real-time profit/loss calculations.
+*   **Live Market Simulation:** Browse dedicated pages for stock and bond markets that display real-time price data. A "Update All" feature allows for instant refreshing of all prices in your watchlist.
+*   **Transaction Simulation:** Easily simulate buying, selling, and deleting assets directly from the UI. The system includes modals for confirming sales and managing cash recharges.
+*   **Historical Data Analysis:** View interactive, collapsible charts showing the historical price performance of individual stocks.
+*   **Flexible Data Entry:** Add assets to your portfolio in two ways:
+    1.  Purchase directly from the market pages, which auto-fills the current market price.
+    2.  Manually add a historical purchase by specifying a past date, which automatically fetches the closing price for that day.
 
 ## Getting Started
 
-To get a local copy up and running follow these simple steps.
+To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-*   npm
+Ensure you have the following software installed on your system.
+*   Node.js and npm
     ```sh
     npm install npm@latest -g
     ```
+*   A running MySQL server instance.
 
 ### Installation
 
 1.  Clone the repo
     ```sh
-    git clone https://github.com/your_username/LittleBankXA.git
+    git clone https://github.com/RichardQAQ/LittleBankXA.git
     ```
 2.  Install NPM packages
     ```sh
     npm install
     ```
-3.  Enter your configuration in `config.js`
+3.  Configure your database connection in `db.js` with your MySQL credentials.
+    ```javascript
+    // filepath: db.js
+    const dbConfig = {
+      host: 'localhost',
+      user: 'your_username',
+      password: 'your_password',
+      database: 'investment_system',
+      // ...
+    };
+    ```
+4.  Initialize the database schema by running the script from the root directory:
+    ```sh
+    node init-db.js
+    ```
+5.  Start the server:
+    ```sh
+    npm start
+    ```
+6.  Access the application by navigating to `http://localhost:3015` in your web browser.
 
 ## Usage
 
-The application allows users to manage their financial portfolio through a REST API and a user-friendly front-end. Key features include:
-
-*   **Portfolio Browsing:** View all assets within your portfolio.
-*   **Performance Tracking:** Analyze the performance of your portfolio, with graphical representations.
-*   **Asset Management:** Easily add or remove stocks, bonds, and other items from your portfolio.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
+The application provides a user-friendly interface for managing a financial portfolio.
+*   **Dashboard:** View a high-level overview of your total assets, overall return, and asset distribution charts.
+*   **Portfolio:** See a detailed list of all your assets, including stocks and bonds. From here, you can sell or delete assets.
+*   **Stock/Bond Markets:** Browse lists of available stocks and bonds, view their real-time prices, and purchase them to add to your portfolio.
+*   **Add Asset:** Manually add historical purchases of stocks or bonds.
 
 ## Roadmap
 
-See the [open issues](https://github.com/your_username/LittleBankXA/issues) for a list of proposed features (and known issues).
+Future enhancements could include:
+*   Support for more asset types (e.g., cryptocurrencies, ETFs).
+*   User authentication and multi-user support.
+*   More advanced portfolio analytics and reporting tools.
+*   Integration with more financial data APIs.
 
 ## Contributing
 
@@ -82,10 +117,13 @@ Contributions are what make the open source community such an amazing place to l
 4.  Push to the Branch (`git push origin feature/AmazingFeature`)
 5.  Open a Pull Request
 
+## License
+
+Distributed under the ISC License.
 
 ## Contact
 
-Project Link: [https://github.com/your_username/LittleBankXA](https://github.com/your_username/LittleBankXA)
+Project Link: [https://github.com/RichardQAQ/LittleBankXA](https://github.com/RichardQAQ/LittleBankXA)
 
 ## Acknowledgements
 
@@ -97,15 +135,3 @@ Project Link: [https://github.com/your_username/LittleBankXA](https://github.com
 *   [Img Shields](https://shields.io)
 *   [Choose an Open Source License](https://choosealicense.com)
 *   [GitHub Pages](https://pages.github.com)
-
-<!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/your_username/LittleBankXA.svg?style=for-the-badge
-[contributors-url]: https://github.com/your_username/LittleBankXA/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/your_username/LittleBankXA.svg?style=for-the-badge
-[forks-url]: https://github.com/your_username/LittleBankXA/network/members
-[stars-shield]: https://img.shields.io/github/stars/your_username/LittleBankXA.svg?style=for-the-badge
-[stars-url]: https://github.com/your_username/LittleBankXA/stargazers
-[issues-shield]: https://img.shields.io/github/issues/your_username/LittleBankXA.svg?style=for-the-badge
-[issues-url]: https://github.com/your_username/LittleBankXA/issues
-[license-shield]: https://img.shields.io/github/license/your_username/LittleBankXA.svg?style=for-the-badge
-[license-url]: https://github.com/your_username/LittleBankXA/blob/master/LICENSE.txt

@@ -1,7 +1,13 @@
 -- 创建用户表
+-- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
+  total_assets DECIMAL(15, 2) DEFAULT 50000.00,
+  stock_value DECIMAL(15, 2) DEFAULT 0.00,
+  bond_value DECIMAL(15, 2) DEFAULT 0.00,
+  cash_balance DECIMAL(15, 2) DEFAULT 50000.00,
+  total_return_rate DECIMAL(8, 4) DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,14 +34,16 @@ CREATE TABLE IF NOT EXISTS bonds (
 );
 
 -- 创建资产表
+-- 创建资产表
 CREATE TABLE IF NOT EXISTS portfolio (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   asset_type ENUM('stock', 'bond', 'cash') NOT NULL,
   asset_id INT NOT NULL,
+  name VARCHAR(100),
   quantity DECIMAL(10, 4) NOT NULL,
   purchase_price DECIMAL(10, 2) NOT NULL,
   purchase_date DATE NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  UNIQUE KEY unique_asset (user_id, asset_type, asset_id)
+  status TINYINT DEFAULT 1,
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );

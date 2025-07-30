@@ -3,9 +3,11 @@
   "dependencies": {
     "alpha-vantage-cli": "^1.0.8",
     "axios": "^1.6.0",
-    "express": "^4.18.2",
+    "dotenv": "^17.2.1",
+    "express": "^4.21.2",
     "mysql2": "^3.14.2",
     "node-cron": "^3.0.2",
+    "sqlite3": "^5.1.7",
     "yahoo-finance-api": "^0.2.1"
   },
   "devDependencies": {

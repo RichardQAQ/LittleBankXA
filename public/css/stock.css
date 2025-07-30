@@ -1,0 +1,194 @@
+/* 股票市场页面样式 */
+.stock-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.stock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.stock-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.stock-symbol {
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #555;
+}
+
+.price-info {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 15px;
+}
+
+.current-price {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.price-change {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.positive {
+    color: #2ecc71;
+}
+
+.negative {
+    color: #e74c3c;
+}
+
+.stock-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.stock-actions {
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+#historical-chart-container {
+    height: 0; /* Start with zero height */
+    overflow: hidden; /* Hide content when collapsed */
+    transition: height 0.4s ease-in-out, padding 0.4s ease-in-out; /* Smooth transition */
+    margin-top: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0 20px; /* No vertical padding when collapsed */
+}
+
+/* Add this new class to expand the container when it has content */
+#historical-chart-container.active {
+    height: 400px;
+    padding: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+}
+
+.error-message {
+    color: #e74c3c;
+    padding: 10px;
+    background-color: #fadbd8;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* 表格样式 */
+.table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* 按钮样式 */
+.view-btn, .update-btn, .buy-btn {
+    padding: 6px 12px;
+    margin-right: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.view-btn {
+    background-color: #3498db;
+    color: white;
+}
+
+.update-btn {
+    background-color: #f39c12;
+    color: white;
+}
+
+.buy-btn {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.view-btn:hover {
+    background-color: #2980b9;
+}
+
+.update-btn:hover {
+    background-color: #e67e22;
+}
+
+.buy-btn:hover {
+    background-color: #27ae60;
+}
