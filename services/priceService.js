@@ -277,6 +277,34 @@ class YahooFinanceService {
     }
   }
 
+  /**
+   * Fetches the closing price for a given stock on a specific date.
+   * @param {string} symbol - The stock ticker (e.g., 'AAPL').
+   * @param {string} dateString - The date in 'YYYY-MM-DD' format.
+   * @returns {Promise<number|null>} A promise that resolves to the price or null if not found.
+   */
+  async fetchPriceForDate(symbol, dateString) {
+    try {
+      // fetchHistoricalData gets daily data for the last month by default.
+      const history = await this.fetchHistoricalData(symbol, '1d');
+      if (!history || !history.labels || history.labels.length === 0) {
+        return null;
+      }
+
+      // Find the index of the requested date in the returned labels.
+      const targetDate = new Date(dateString).toLocaleDateString('zh-CN');
+      const dateIndex = history.labels.findIndex(label => new Date(label).toLocaleDateString('zh-CN') === targetDate);
+
+      if (dateIndex !== -1) {
+        return history.values[dateIndex];
+      }
+      return null; // Date not found in the historical data range.
+    } catch (error) {
+      console.error(`Error fetching price for ${symbol} on ${dateString}:`, error);
+      return null;
+    }
+  }
+
   getStatus() {
     return {
       lastUpdate: this.lastUpdate,

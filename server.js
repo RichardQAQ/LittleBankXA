@@ -211,6 +211,28 @@ apiRouter.get('/stocks/search', async (req, res) => {
   }
 });
 
+// NEW: API route to get historical price for a stock on a specific date
+apiRouter.get('/stocks/:symbol/price-on-date', async (req, res) => {
+  const { symbol } = req.params;
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ error: 'Date parameter is required' });
+  }
+
+  try {
+    const price = await priceService.fetchPriceForDate(symbol, date);
+    if (price !== null) {
+      res.json({ price });
+    } else {
+      res.status(404).json({ error: 'Price not found for the selected date.' });
+    }
+  } catch (error) {
+    console.error('Failed to fetch historical price:', error);
+    res.status(500).json({ error: 'Failed to fetch historical price.' });
+  }
+});
+
 // 获取单个股票数据
 apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   try {

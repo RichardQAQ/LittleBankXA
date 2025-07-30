@@ -4,16 +4,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const bondSpecificFields = document.getElementById('bond-specific-fields');
     const addAssetForm = document.getElementById('add-asset-form');
     const formMessage = document.getElementById('form-message');
+    const purchasePriceInput = document.getElementById('purchase-price');
+    const purchaseDateInput = document.getElementById('purchase-date');
+    const symbolInput = document.getElementById('symbol');
+
+    let isHistoricalEntry = true; // Assume historical entry by default
 
     // 设置今天为默认购买日期
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('purchase-date').value = today;
+    purchaseDateInput.value = today;
 
     // 解析URL参数并填充表单
     function fillFormFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const assetType = urlParams.get('type');
         if (assetType === 'stock') {
+            isHistoricalEntry = false; // This is a current purchase, not historical
             // 设置资产类型为股票
             document.getElementById('asset-type').value = 'stock';
             // 隐藏债券特有字段
@@ -32,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function fillFormFromStorage() {
         const prefilledData = localStorage.getItem('prefilledAsset');
         if (prefilledData) {
+            isHistoricalEntry = false; // This is a current purchase, not historical
             try {
                 const assetData = JSON.parse(prefilledData);
                 
@@ -79,6 +86,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // 页面加载时填充表单
     fillFormFromUrl();
     fillFormFromStorage();
+
+    // If it's a historical entry, make fields editable
+    if (isHistoricalEntry) {
+        purchasePriceInput.readOnly = false;
+        purchaseDateInput.readOnly = false;
+        purchasePriceInput.placeholder = '选择日期后自动填充或手动输入';
+        // Clear any default values that might be cached by the browser
+        purchasePriceInput.value = ''; 
+    }
+
+    // Event listener to fetch historical price
+    async function fetchHistoricalPrice() {
+        const symbol = symbolInput.value.trim();
+        const date = purchaseDateInput.value;
+        const assetType = assetTypeSelect.value;
+
+        if (isHistoricalEntry && symbol && date && assetType === 'stock') {
+            try {
+                const response = await fetch(`/api/stocks/${symbol}/price-on-date?date=${date}`);
+                const data = await response.json();
+                if (response.ok) {
+                    purchasePriceInput.value = data.price.toFixed(2);
+                    showMessage('已获取历史价格', 'info');
+                } else {
+                    purchasePriceInput.value = '';
+                    showMessage(data.error || '无法获取该日价格', 'error');
+                }
+            } catch (error) {
+                showMessage('获取历史价格失败', 'error');
+            }
+        }
+    }
+
+    // Add listeners to trigger the fetch
+    symbolInput.addEventListener('blur', fetchHistoricalPrice);
+    purchaseDateInput.addEventListener('change', fetchHistoricalPrice);
 
     // 监听资产类型变化
     assetTypeSelect.addEventListener('change', function() {
