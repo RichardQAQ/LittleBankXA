@@ -26,6 +26,7 @@
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
+    position: relative; /* Set positioning context for the results dropdown */
 }
 
 .search-bar input {
@@ -35,6 +36,44 @@
     border-radius: 4px;
     font-size: 14px;
 }
+
+/* --- NEW STYLES FOR PROFESSIONAL AUTOCOMPLETE --- */
+
+/* Autocomplete container styles */
+#autocomplete-results {
+    position: absolute;
+    top: 100%; /* Position it right below the search bar */
+    left: 0;
+    right: 0; /* Span the full width of the search bar */
+    background-color: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 5px 5px; /* Rounded bottom corners */
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Professional shadow */
+    z-index: 1000; /* Ensure it's on top */
+    max-height: 280px; /* Limit height */
+    overflow-y: auto; /* Add scroll for long lists */
+}
+
+/* Individual autocomplete item styles */
+#autocomplete-results div {
+    padding: 10px 15px;
+    cursor: pointer; /* Change mouse to pointer on hover */
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f0f0f0; /* Separator line */
+}
+
+/* Remove border from the last item for a cleaner look */
+#autocomplete-results div:last-child {
+    border-bottom: none;
+}
+
+/* Hover effect for autocomplete items */
+#autocomplete-results div:hover {
+    background-color: #f5f5f5; /* Light grey background on hover */
+}
+
+/* --- END OF NEW STYLES --- */
 
 .btn {
     padding: 8px 15px;
