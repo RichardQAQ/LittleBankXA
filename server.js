@@ -641,14 +641,28 @@ apiRouter.get('/portfolio', async (req, res) => {
 // 添加资产到投资组合
 apiRouter.post('/portfolio', async (req, res) => {
   try {
-    const { assetType, symbol, name, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
+    const { assetType, symbol, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
+    let { name } = req.body; // Make name mutable
     
     // 假设只有一个用户，ID为1
     const userId = 1;
     let assetId;
     
-    if (assetType === 'stock') {
-      // 检查股票是否已存在
+    // If the name is not provided, fetch it using the price service.
+    if (!name && symbol) {
+        console.log(`Name not provided for ${symbol}, fetching from API...`);
+        const stockDataList = await priceService.fetchRealTimePrice([symbol]);
+        if (stockDataList && stockDataList.length > 0 && stockDataList[0].name) {
+            name = stockDataList[0].name;
+            console.log(`Fetched name: ${name}`);
+        } else {
+            // Fallback if API fails or doesn't return a name
+            name = symbol; 
+            console.log(`Could not fetch name, using symbol as fallback: ${name}`);
+        }
+    }
+    
+    if (assetType === 'stock') {      // 检查股票是否已存在
       const [stockExists] = await pool.query('SELECT id FROM stocks WHERE symbol = ?', [symbol]);
       
       if (stockExists.length > 0) {

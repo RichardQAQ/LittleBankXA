@@ -26,10 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
             bondSpecificFields.style.display = 'none';
             // 填充股票代码和名称
             const symbol = urlParams.get('symbol');
-            const name = urlParams.get('name');
             const price = urlParams.get('price');
             if (symbol) document.getElementById('symbol').value = symbol;
-            if (name) document.getElementById('name').value = name;
             if (price) document.getElementById('purchase-price').value = price;
         }
     }
@@ -47,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 填充基本信息
                 if (assetData.symbol) document.getElementById('symbol').value = assetData.symbol;
-                if (assetData.name) document.getElementById('name').value = assetData.name;
                 if (assetData.price) document.getElementById('purchase-price').value = assetData.price;
                 
                 // 根据资产类型显示/隐藏相应字段
