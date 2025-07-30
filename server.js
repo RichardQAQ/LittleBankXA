@@ -219,18 +219,19 @@ apiRouter.get('/stocks/search', async (req, res) => {
   }
 });
 
-apiRouter.get('/stocks/refresh', async (req, res) => {
-  const { query } = req.query;
-  if (!query) {
-    return res.status(400).json({ error: 'Query parameter is required' });
-  }
+apiRouter.post('/stocks/refresh', async (req, res) => {
+  console.log('开始更新所有股票价格...');
+  
   // 返回一个空的成功响应，实际功能将由其他人实现
-  res.json({ 
-    success: true, 
-    message: '更新功能将由其他人实现',
-    updated: 0,
-    total: 0
-  });
+  try {
+    console.log('调用价格服务更新所有股票价格');
+    const results = await priceService.updateAllStockPrices();
+    console.log('所有股票价格更新完成:', results);
+    res.json(results);
+  } catch (error) {
+    console.error('Stock search failed:', error);
+    res.status(500).json({ error: 'Failed to search for stocks' });
+  }
 });
 
 // 获取单个股票数据

@@ -189,8 +189,8 @@ class YahooFinanceService {
 
       try {
         const [updateResult] = await pool.query(
-          `UPDATE stocks SET current_price = ?, change_percent = ?, name = ?, last_updated = NOW() WHERE symbol = ?`,
-          [stockData.current_price, stockData.change_percent, stockData.name, stockData.symbol]
+          `UPDATE stocks SET current_price = ?, change_percent = ?, volume = ?, name = ?, updated_at = NOW() WHERE symbol = ?`,
+          [stockData.current_price, stockData.change_percent, stockData.volume, stockData.name, stockData.symbol]
         );
 
         if (updateResult.affectedRows > 0) {

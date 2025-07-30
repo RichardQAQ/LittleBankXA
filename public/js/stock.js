@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 全局更新价格按钮点击事件
     updateAllPricesBtn.addEventListener('click', async () => {
+        console.log('开始更新所有股票价格');
         updateAllPrices();
     });
 
@@ -253,18 +254,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 更新所有股票价格
     async function updateAllPrices() {
+        console.log('开始更新所有股票价格');
         showLoading();
         try {
-            const response = await fetch('/api/stocks/refresh?query=update');
+            const response = await fetch(`/api/stocks/refresh`,{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('更新所有股票价格请求发送');
             
             if (!response.ok) {
+                console.log('更新所有股票价格失败:', response.statusText);
                 throw new Error('更新所有股票价格失败');
             }
             
             const result = await response.json();
+            console.log('更新所有股票价格结果:', result);
             showError(`成功更新了 ${result.updated || 0} 支股票的价格`, true);
             
             // 重新加载股票列表
+            console.log('重新加载股票列表');
             loadStockList();
             
             // 如果当前有显示的股票，重新获取其数据
