@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockSymbolInput = document.getElementById('stock-symbol');
     const searchStockButton = document.getElementById('search-stock');
     const updatePriceButton = document.getElementById('update-price');
+    const updateAllPricesBtn = document.getElementById('update-all-prices-btn'); // Get the new button
     const loadingIndicator = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const stockDataElement = document.getElementById('stock-data');
@@ -41,46 +42,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // 添加"更新所有价格"按钮到关注列表标题旁边
-    const stockListHeader = document.querySelector('.stock-list h3');
-    if (stockListHeader) {
-        // 创建标题容器
-        const headerContainer = document.createElement('div');
-        headerContainer.className = 'stock-list-header';
-        headerContainer.style.display = 'flex';
-        headerContainer.style.justifyContent = 'space-between';
-        headerContainer.style.alignItems = 'center';
-        headerContainer.style.marginBottom = '15px';
-        
-        // 将原标题移动到容器中
-        const title = stockListHeader.cloneNode(true);
-        
-        // 创建更新所有价格按钮
-        const updateAllButton = document.createElement('button');
-        updateAllButton.id = 'update-all-prices';
-        updateAllButton.className = 'action-btn update-btn';
-        updateAllButton.textContent = '更新价格';
-        updateAllButton.style.backgroundColor = '#f0ad4e';
-        updateAllButton.style.color = 'white';
-        updateAllButton.style.border = 'none';
-        updateAllButton.style.borderRadius = '4px';
-        updateAllButton.style.padding = '8px 16px';
-        updateAllButton.style.cursor = 'pointer';
-        updateAllButton.style.fontWeight = 'bold';
-        // 更新所有股票价格按钮点击事件
-        updateAllPriceBtn.addEventListener('click', updateAllStockPricesBtn);
+    // NEW: Event listener for the "Update All Prices" button
+    updateAllPricesBtn.addEventListener('click', async () => {
+        showLoading();
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            const result = await response.json();
 
-        // 添加事件监听
-        updateAllButton.addEventListener('click', updateAllStockPricesBtn);
-        
-        // 组装标题容器
-        headerContainer.appendChild(title);
-        headerContainer.appendChild(updateAllButton);
-        
-        // 替换原标题
-        stockListHeader.parentNode.replaceChild(headerContainer, stockListHeader);
-    }
-    
+            if (!response.ok || result.error) {
+                throw new Error(result.error || '批量更新失败');
+            }
+            
+            showError(result.message, true); // Use showError to display success message
+            loadStockList(); // Refresh the list to show new prices
+
+        } catch (error) {
+            showError(error.message);
+            console.error('批量更新失败:', error);
+        } finally {
+            hideLoading();
+        }
+    });
 
     // NEW: Event listener for autocomplete search
     stockSymbolInput.addEventListener('input', async () => {
@@ -219,6 +201,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 更新所有股票价格
+    async function updateAllStockPrices() {
+        showLoading();
+        showError('正在更新所有股票价格...', true);
+        
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            if (!response.ok) {
+                throw new Error('更新所有股票价格失败');
+            }
+            const result = await response.json();
+            showError(result.message || '所有股票价格更新成功', true);
+            // 重新加载股票列表
+            loadStockList();
+        } catch (error) {
+            showError('更新所有股票价格失败: ' + error.message);
+            console.error('更新所有股票价格失败:', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 更新所有股票价格
+    async function updateAllStockPrices() {
+        showLoading();
+        showError('正在更新所有股票价格...', true);
+        
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            if (!response.ok) {
+                throw new Error('更新所有股票价格失败');
+            }
+            const result = await response.json();
+            showError(result.message || '所有股票价格更新成功', true);
+            // 重新加载股票列表
+            loadStockList();
+        } catch (error) {
+            showError('更新所有股票价格失败: ' + error.message);
+            console.error('更新所有股票价格失败:', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 更新所有股票价格
     async function  updateAllStockPricesBtn() {
         showLoading();
         showError('正在更新所有股票价格...', true);
@@ -306,31 +332,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 显示股票列表
     function displayStockList(stocks) {
-        stockTableBody.innerHTML = '';
+        let html = '';
         stocks.forEach(stock => {
-            const row = document.createElement('tr');
-            
-            // 计算涨跌颜色
-            const changeClass = parseFloat(stock.change_percent) >= 0 ? 'positive' : 'negative';
-            const changeSign = parseFloat(stock.change_percent) >= 0 ? '+' : '';
-            
-            row.innerHTML = `
-            <td>${stock.id}</td>
-            <td>${stock.symbol}</td>
-            <td>${new Date(stock.updated_at).toLocaleDateString()}</td>
-            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
-            <td>¥${(parseFloat(stock.current_price) * 0.99).toFixed(2)}</td>
-            <td>¥${(parseFloat(stock.current_price) * 1.01).toFixed(2)}</td>
-            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
-            <td>${stock.volume.toLocaleString()}</td>
-            <td>${stock.id}</td>
-            <td>
-                <button class="action-btn view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查询</button>
-                <button class="action-btn buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
-            </td>
-        `;
-            stockTableBody.appendChild(row);
+            const changeClass = stock.change_percent >= 0 ? 'positive' : 'negative';
+            const changeSign = stock.change_percent >= 0 ? '+' : '';
+            html += `
+                <tr>
+                    <td><a href="#" class="stock-link" data-symbol="${stock.symbol}">${stock.symbol}</a></td>
+                    <td>${stock.name}</td>
+                    <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
+                    <td class="${changeClass}">${changeSign}${parseFloat(stock.change_percent).toFixed(2)}%</td>
+                    <td>${formatNumber(stock.volume)}</td>
+                    <td>¥${formatNumber(stock.market_cap)}</td>
+                    <td>
+                        <!-- FIX: Add the data-price attribute to the button -->
+                        <button class="btn btn-sm btn-success buy-btn" 
+                                data-symbol="${stock.symbol}" 
+                                data-name="${stock.name}" 
+                                data-price="${stock.current_price}">购买</button>
+                    </td>
+                </tr>
+            `;
         });
+        stockTableBody.innerHTML = html;
 
         // 为查看按钮添加事件监听
         document.querySelectorAll('.view-btn').forEach(button => {
@@ -346,8 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
                 const name = e.target.getAttribute('data-name');
-                const price = e.target.getAttribute('data-price');
+                const price = e.target.getAttribute('data-price'); // Get the price from the data attribute
                 // 跳转到添加资产页面，并传递股票信息
+                // FIX: Add the price to the URL query parameters
                 window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}&price=${price}`;
             });
         });

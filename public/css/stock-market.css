@@ -191,6 +191,37 @@ th {
     margin-top: 15px;
 }
 
+.stock-list {
+    margin-top: 20px;
+}
+
+/* NEW: Styles for the header of the stock list */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.list-header h3 {
+    margin: 0;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .market-container {

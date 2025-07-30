@@ -170,25 +170,32 @@ apiRouter.get('/portfolio', async (req, res) => {
 // 获取股票列表
 apiRouter.get('/stocks', async (req, res) => {
   try {
+    // FIX: First, trigger a background update for all stocks in the watchlist.
+    // We don't need to wait for it to complete here, but this ensures data freshness over time.
+    // For an immediate refresh, we await the result.
+    console.log('Updating all stock prices before fetching list...');
+    await priceService.updateAllStockPrices();
+    console.log('Price update complete. Fetching list from database.');
+
     const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
     
     const formattedStocks = stocks.map(stock => {
-      // 生成随机的涨跌幅数据（-3%到+3%之间的随机值）
-      const changePercent = (Math.random() * 6 - 3).toFixed(2);
+      // The change_percent will now come from the database, so no need to randomize it.
+      const changePercent = parseFloat(stock.change_percent) || 0;
       
       return {
         id: stock.id,
         symbol: stock.symbol,
         name: stock.name || stock.symbol,
         current_price: parseFloat(stock.current_price),
-        change_percent: parseFloat(changePercent),
+        price: parseFloat(stock.current_price), // FIX: Add 'price' for consistency with other endpoints.
+        change_percent: changePercent,
         volume: stock.volume || Math.floor(Math.random() * 1000000) + 100000,
         market_cap: stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
-        updated_at: stock.last_updated || new Date()
+        updated_at: stock.updated_at || new Date() // FIX: Corrected 'last_updated' to 'updated_at'.
       };
     });
     
-    console.log('返回股票列表:', formattedStocks);
     res.json(formattedStocks);
   } catch (error) {
     console.error('获取股票列表失败:', error);
@@ -304,8 +311,8 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
     // 如果API获取失败或没有返回数据，使用数据库中的数据
     console.log(`使用数据库中的股票 ${symbol} 数据`);
     
-    // 生成更真实的涨跌幅数据（-3%到+3%之间的随机值）
-    const changePercent = (Math.random() * 6 - 3).toFixed(2);
+    // FIX: Use the change_percent from the database instead of generating a random one.
+    const changePercent = parseFloat(stock.change_percent) || 0;
     
     const volume = stock.volume || Math.floor(Math.random() * 1000000) + 100000;
     const marketCap = stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000);
@@ -349,6 +356,22 @@ apiRouter.post('/stocks/buy', async (req, res) => {
   } catch (error) {
     console.error('购买股票失败:', error);
     res.status(500).json({ error: '购买失败: ' + error.message });
+  }
+});
+
+// NEW: API route to update all stock prices
+apiRouter.post('/stocks/update-all', async (req, res) => {
+  try {
+    console.log('Received request to update all stock prices.');
+    const result = await priceService.updateAllStockPrices();
+    if (result.success) {
+      res.json({ success: true, message: `成功更新 ${result.updated} 支股票的价格。`, details: result });
+    } else {
+      throw new Error(result.error || 'Batch update failed.');
+    }
+  } catch (error) {
+    console.error('批量更新股票价格失败:', error);
+    res.status(500).json({ error: '批量更新失败: ' + error.message });
   }
 });
 
@@ -629,14 +652,28 @@ apiRouter.get('/portfolio', async (req, res) => {
 // 添加资产到投资组合
 apiRouter.post('/portfolio', async (req, res) => {
   try {
-    const { assetType, symbol, name, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
+    const { assetType, symbol, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
+    let { name } = req.body; // Make name mutable
     
     // 假设只有一个用户，ID为1
     const userId = 1;
     let assetId;
     
-    if (assetType === 'stock') {
-      // 检查股票是否已存在
+    // If the name is not provided, fetch it using the price service.
+    if (!name && symbol) {
+        console.log(`Name not provided for ${symbol}, fetching from API...`);
+        const stockDataList = await priceService.fetchRealTimePrice([symbol]);
+        if (stockDataList && stockDataList.length > 0 && stockDataList[0].name) {
+            name = stockDataList[0].name;
+            console.log(`Fetched name: ${name}`);
+        } else {
+            // Fallback if API fails or doesn't return a name
+            name = symbol; 
+            console.log(`Could not fetch name, using symbol as fallback: ${name}`);
+        }
+    }
+    
+    if (assetType === 'stock') {      // 检查股票是否已存在
       const [stockExists] = await pool.query('SELECT id FROM stocks WHERE symbol = ?', [symbol]);
       
       if (stockExists.length > 0) {
@@ -670,9 +707,10 @@ apiRouter.post('/portfolio', async (req, res) => {
     }
     
     // 将资产添加到投资组合
+    // FIX: Removed the 'name' column from the INSERT statement as it does not exist in the portfolio table.
     await pool.query(
-      'INSERT INTO portfolio (asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?)',
-      [assetType, assetId, quantity, purchasePrice, purchaseDate]
+      'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, 1)',
+      [userId, assetType, assetId, quantity, purchasePrice, purchaseDate]
       );
     
     res.json({ success: true, message: '资产添加成功' });
@@ -700,7 +738,7 @@ apiRouter.delete('/portfolio/:id', async (req, res) => {
     await pool.query('DELETE FROM portfolio WHERE id = ?', [id]);
     
     // 更新用户资产总值
-    await updateUserAssetValues(1);
+    await portfolioService.updateUserAssetValues(1);
     
     res.json({ success: true, message: '资产删除成功' });
   } catch (error) {
