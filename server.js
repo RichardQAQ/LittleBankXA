@@ -170,7 +170,14 @@ apiRouter.get('/portfolio', async (req, res) => {
 // 获取股票列表
 apiRouter.get('/stocks', async (req, res) => {
   try {
+    console.log('开始获取股票列表...');
     const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
+    console.log('从数据库获取到股票数据:', stocks.length, '条记录');
+    
+    if (!stocks || stocks.length === 0) {
+      console.log('数据库中没有股票数据，返回空数组');
+      return res.json([]);
+    }
     
     const formattedStocks = stocks.map(stock => {
       // 生成随机的涨跌幅数据（-3%到+3%之间的随机值）
@@ -188,11 +195,12 @@ apiRouter.get('/stocks', async (req, res) => {
       };
     });
     
-    console.log('返回股票列表:', formattedStocks);
+    console.log('返回股票列表:', formattedStocks.length, '条记录');
     res.json(formattedStocks);
   } catch (error) {
     console.error('获取股票列表失败:', error);
-    res.status(500).json({ error: '获取股票列表失败' });
+    console.error('错误详情:', error.stack);
+    res.status(500).json({ error: '获取股票列表失败: ' + error.message });
   }
 });
 
@@ -209,6 +217,20 @@ apiRouter.get('/stocks/search', async (req, res) => {
     console.error('Stock search failed:', error);
     res.status(500).json({ error: 'Failed to search for stocks' });
   }
+});
+
+apiRouter.get('/stocks/refresh', async (req, res) => {
+  const { query } = req.query;
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter is required' });
+  }
+  // 返回一个空的成功响应，实际功能将由其他人实现
+  res.json({ 
+    success: true, 
+    message: '更新功能将由其他人实现',
+    updated: 0,
+    total: 0
+  });
 });
 
 // 获取单个股票数据
