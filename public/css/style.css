@@ -261,3 +261,13 @@ footer {
     border-radius: 4px;
     margin-bottom: 1rem;
 }
+.stock-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.update-btn {
+    background-color: #f0ad4e; /* 橙色 */
+}

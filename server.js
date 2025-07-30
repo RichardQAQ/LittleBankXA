@@ -327,6 +327,17 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   }
 });
 
+apiRouter.post('/stocks/refresh', async (req, res) => {
+  try {
+    const result = priceService.updateAllStockPrices();
+    res.json(result);
+  } catch (error) {
+    console.error('刷新股票价格失败:', error);
+    res.status(500).json({ error: '刷新股票价格失败' });
+  }
+});
+
+
 // 购买股票
 apiRouter.post('/stocks/buy', async (req, res) => {
   try {

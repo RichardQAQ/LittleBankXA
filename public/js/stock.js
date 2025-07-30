@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockTableBody = document.getElementById('stock-table-body');
     const chartContainer = document.getElementById('historical-chart-container');
     const autocompleteResults = document.getElementById('autocomplete-results'); // Get the new container
+    const updateAllPriceBtn = document.getElementById('update-all-price-btn');
 
 
     // 隐藏加载指示器和错误提示
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+
     // 添加"更新所有价格"按钮到关注列表标题旁边
     const stockListHeader = document.querySelector('.stock-list h3');
     if (stockListHeader) {
@@ -65,9 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
         updateAllButton.style.padding = '8px 16px';
         updateAllButton.style.cursor = 'pointer';
         updateAllButton.style.fontWeight = 'bold';
-        
+        // 更新所有股票价格按钮点击事件
+        updateAllPriceBtn.addEventListener('click', updateAllStockPricesBtn);
+
         // 添加事件监听
-        updateAllButton.addEventListener('click', updateAllStockPrices);
+        updateAllButton.addEventListener('click', updateAllStockPricesBtn);
         
         // 组装标题容器
         headerContainer.appendChild(title);
@@ -76,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 替换原标题
         stockListHeader.parentNode.replaceChild(headerContainer, stockListHeader);
     }
+    
 
     // NEW: Event listener for autocomplete search
     stockSymbolInput.addEventListener('input', async () => {
@@ -214,12 +219,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 更新所有股票价格
-    async function updateAllStockPrices() {
+    async function  updateAllStockPricesBtn() {
         showLoading();
         showError('正在更新所有股票价格...', true);
         
         try {
-            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            const response = await fetch('/api/stocks/refresh', { method: 'POST' });
             if (!response.ok) {
                 throw new Error('更新所有股票价格失败');
             }
@@ -227,6 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(result.message || '所有股票价格更新成功', true);
             // 重新加载股票列表
             loadStockList();
+
+            const currentSymbol = stockSymbolInput.value.trim().toUpperCase(); // 获取当前输入的股票代码
+            if (currentSymbol) {
+                getStockData(currentSymbol);
+            }
+            
         } catch (error) {
             showError('更新所有股票价格失败: ' + error.message);
             console.error('更新所有股票价格失败:', error);
