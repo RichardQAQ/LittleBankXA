@@ -1,7 +1,8 @@
 const pool = require('./db');
 const fs = require('fs');
 const path = require('path');
-const yahooFinanceService = require('./services/yahooFinanceService');
+const yahooFinanceService = require('./services/priceService');
+
 
 async function initDatabase() {
   try {

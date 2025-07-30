@@ -3,6 +3,7 @@
  */
 
 const pool = require('../db');
+const priceService = require('./priceService'); // Import the price service
 
 /**
  * 更新用户资产总值
@@ -270,9 +271,11 @@ async function sellAsset(userId, assetId, quantity) {
       throw new Error('参数不完整或无效');
     }
     
-    // 使用简单查询避免锁等待
+    // Step 1: Get asset details from the database
     const [assets] = await pool.query(
-      `SELECT p.*, s.current_price as stock_price, b.current_price as bond_price, b.face_value
+      `SELECT p.*, 
+              s.current_price as stock_price, s.symbol as stock_symbol, 
+              b.current_price as bond_price, b.symbol as bond_symbol, b.face_value
        FROM portfolio p
        LEFT JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
        LEFT JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
@@ -292,18 +295,39 @@ async function sellAsset(userId, assetId, quantity) {
       throw new Error('卖出数量超过持有数量');
     }
     
-    // 计算卖出价格
-    let currentPrice = parseFloat(asset.purchase_price);
-    
-    if (asset.asset_type === 'stock') {
-      currentPrice = parseFloat(asset.stock_price) || parseFloat(asset.purchase_price);
-    } else if (asset.asset_type === 'bond') {
-      currentPrice = parseFloat(asset.bond_price) || parseFloat(asset.face_value) || parseFloat(asset.purchase_price);
+    // Step 2: NEW - Update price before selling
+    const symbol = asset.asset_type === 'stock' ? asset.stock_symbol : asset.bond_symbol;
+    let currentPrice;
+
+    if (symbol) {
+        console.log(`🔄 Updating price for ${symbol} before selling...`);
+        const priceData = await priceService.fetchRealTimePrice([symbol]);
+        if (priceData && priceData.length > 0 && priceData[0].current_price) {
+            currentPrice = priceData[0].current_price;
+            // Update the price in the corresponding table for consistency
+            if (asset.asset_type === 'stock') {
+                await pool.query('UPDATE stocks SET current_price = ? WHERE id = ?', [currentPrice, asset.asset_id]);
+            } else if (asset.asset_type === 'bond') {
+                await pool.query('UPDATE bonds SET current_price = ? WHERE id = ?', [currentPrice, asset.asset_id]);
+            }
+            console.log(`✅ Price for ${symbol} updated to ${currentPrice}`);
+        }
+    }
+
+    // Fallback to DB price if API fails or symbol doesn't exist
+    if (!currentPrice) {
+        console.log(`⚠️ Could not fetch live price. Using stored price.`);
+        if (asset.asset_type === 'stock') {
+            currentPrice = parseFloat(asset.stock_price) || parseFloat(asset.purchase_price);
+        } else if (asset.asset_type === 'bond') {
+            currentPrice = parseFloat(asset.bond_price) || parseFloat(asset.face_value) || parseFloat(asset.purchase_price);
+        }
     }
     
+    // Step 3: Calculate sell amount with the most up-to-date price
     const sellAmount = sellQuantity * currentPrice;
     
-    // 直接执行更新操作，不使用事务避免锁等待
+    // Step 4: Update portfolio table
     if (Math.abs(sellQuantity - currentQuantity) < 0.0001) {
       // 全部卖出
       await pool.query('UPDATE portfolio SET status = 0 WHERE id = ?', [assetId]);
@@ -313,10 +337,10 @@ async function sellAsset(userId, assetId, quantity) {
       await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [remainingQuantity, assetId]);
     }
     
-    // 更新现金余额
+    // Step 5: Update user's cash balance
     await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [sellAmount, userId]);
     
-    // 更新用户资产总值
+    // Step 6: Update user's total asset values
     await updateUserAssetValues(userId);
     
     return {
