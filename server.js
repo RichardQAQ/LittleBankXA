@@ -676,10 +676,24 @@ apiRouter.delete('/portfolio/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    // 获取资产信息，用于日志记录
+    const [assets] = await pool.query('SELECT * FROM portfolio WHERE id = ?', [id]);
+    if (assets.length === 0) {
+      return res.status(404).json({ error: '资产不存在' });
+    }
+    
+    const asset = assets[0];
+    console.log(`删除资产: ID=${id}, 类型=${asset.asset_type}, 数量=${asset.quantity}`);
+    
+    // 执行删除操作
     await pool.query('DELETE FROM portfolio WHERE id = ?', [id]);
+    
+    // 更新用户资产总值
+    await updateUserAssetValues(1);
     
     res.json({ success: true, message: '资产删除成功' });
   } catch (error) {
+    console.error('删除资产失败:', error);
     res.status(500).json({ error: error.message });
   }
 });

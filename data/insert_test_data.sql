@@ -1,6 +1,6 @@
 -- 插入用户数据
 INSERT INTO users (username, total_assets, stock_value, bond_value, cash_balance, total_return_rate) VALUES
-('张三', 22889.70, 0.00, 0.00, 22889.70, 0.00);
+('Buffett', 22889.70, 0.00, 0.00, 22889.70, 0.00);
 
 -- 插入股票数据
 INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES
@@ -15,9 +15,9 @@ INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current
 
 -- 插入资产数据
 INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES
-(1, 'stock', 1, 10.00, 180.50, '2024-01-15', 1),  -- 张三持有10股苹果股票
-(1, 'stock', 2, 5.00, 400.30, '2024-02-20', 1),   -- 张三持有5股微软股票
-(1, 'stock', 3, 15.00, 125.40, '2024-03-05', 1),  -- 张三持有15股谷歌股票
-(1, 'bond', 1, 3.00, 970.10, '2024-04-10', 1),    -- 张三持有3份美国10年期国债
-(1, 'bond', 2, 4.00, 985.30, '2024-05-15', 1),    -- 张三持有4份中国5年期国债
-(1, 'cash', 0, 5000.00, 1.00, '2024-05-20', 1);   -- 张三持有5000元现金
+(1, 'stock', 1, 10.00, 180.50, '2024-01-15', 1),  
+(1, 'stock', 2, 5.00, 400.30, '2024-02-20', 1),   
+(1, 'stock', 3, 15.00, 125.40, '2024-03-05', 1),  
+(1, 'bond', 1, 3.00, 970.10, '2024-04-10', 1),    
+(1, 'bond', 2, 4.00, 985.30, '2024-05-15', 1),    
+(1, 'cash', 0, 5000.00, 1.00, '2024-05-20', 1);   

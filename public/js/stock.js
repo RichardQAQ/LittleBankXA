@@ -39,6 +39,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 添加"更新所有价格"按钮到关注列表标题旁边
+    const stockListHeader = document.querySelector('.stock-list h3');
+    if (stockListHeader) {
+        // 创建标题容器
+        const headerContainer = document.createElement('div');
+        headerContainer.className = 'stock-list-header';
+        headerContainer.style.display = 'flex';
+        headerContainer.style.justifyContent = 'space-between';
+        headerContainer.style.alignItems = 'center';
+        headerContainer.style.marginBottom = '15px';
+        
+        // 将原标题移动到容器中
+        const title = stockListHeader.cloneNode(true);
+        
+        // 创建更新所有价格按钮
+        const updateAllButton = document.createElement('button');
+        updateAllButton.id = 'update-all-prices';
+        updateAllButton.className = 'action-btn update-btn';
+        updateAllButton.textContent = '更新价格';
+        updateAllButton.style.backgroundColor = '#f0ad4e';
+        updateAllButton.style.color = 'white';
+        updateAllButton.style.border = 'none';
+        updateAllButton.style.borderRadius = '4px';
+        updateAllButton.style.padding = '8px 16px';
+        updateAllButton.style.cursor = 'pointer';
+        updateAllButton.style.fontWeight = 'bold';
+        
+        // 添加事件监听
+        updateAllButton.addEventListener('click', updateAllStockPrices);
+        
+        // 组装标题容器
+        headerContainer.appendChild(title);
+        headerContainer.appendChild(updateAllButton);
+        
+        // 替换原标题
+        stockListHeader.parentNode.replaceChild(headerContainer, stockListHeader);
+    }
+
     // NEW: Event listener for autocomplete search
     stockSymbolInput.addEventListener('input', async () => {
         const query = stockSymbolInput.value.trim();
@@ -175,6 +213,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 更新所有股票价格
+    async function updateAllStockPrices() {
+        showLoading();
+        showError('正在更新所有股票价格...', true);
+        
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            if (!response.ok) {
+                throw new Error('更新所有股票价格失败');
+            }
+            const result = await response.json();
+            showError(result.message || '所有股票价格更新成功', true);
+            // 重新加载股票列表
+            loadStockList();
+        } catch (error) {
+            showError('更新所有股票价格失败: ' + error.message);
+            console.error('更新所有股票价格失败:', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
     // 加载股票列表
     async function loadStockList() {
         console.log('加载股票列表');
@@ -254,9 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${stock.volume.toLocaleString()}</td>
             <td>${stock.id}</td>
             <td>
-                <button class="view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查看</button>
-                <button class="update-btn" data-symbol="${stock.symbol}">更新价格</button>
-                <button class="buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
+                <button class="action-btn view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查询</button>
+                <button class="action-btn buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
             </td>
         `;
             stockTableBody.appendChild(row);
@@ -271,22 +330,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 为更新价格按钮添加事件监听
-        document.querySelectorAll('.update-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const symbol = e.target.getAttribute('data-symbol');
-                stockSymbolInput.value = symbol;
-                updateStockPrice(symbol);
-            });
-        });
-
         // 为购买按钮添加事件监听
         document.querySelectorAll('.buy-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
                 const name = e.target.getAttribute('data-name');
+                const price = e.target.getAttribute('data-price');
                 // 跳转到添加资产页面，并传递股票信息
-                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}`;
+                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}&price=${price}`;
             });
         });
     }
@@ -295,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLoading() {
         loadingIndicator.style.display = 'block';
         errorElement.style.display = 'none';
-        stockDataElement.innerHTML = '';
     }
 
     // 隐藏加载指示器
@@ -321,4 +371,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return num.toString();
     }
+
+    // 添加CSS样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            margin: 2px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .view-btn {
+            background-color: #17a2b8; /* 蓝绿色 */
+        }
+        
+        .buy-btn {
+            background-color: #28a745; /* 绿色 */
+        }
+        
+        .update-btn {
+            background-color: #f0ad4e; /* 橙色 */
+        }
+        
+        .action-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .stock-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+    `;
+    document.head.appendChild(style);
 });

@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalReturnElement = document.getElementById('total-return');
     const recentAssetsList = document.getElementById('recent-assets-list');
     const performanceChartCanvas = document.getElementById('performance-chart');
+    const assetDistributionChartCanvas = document.getElementById('asset-distribution-chart');
+    const assetProfitChartCanvas = document.getElementById('asset-profit-chart');
 
     // 检查元素是否存在
     if (!totalValueElement || !totalReturnElement) {
@@ -13,6 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化图表
     let performanceChart = null;
+    let assetDistributionChart = null;
+    let assetProfitChart = null;
+    
+    // 初始化折线图
     if (performanceChartCanvas) {
         performanceChart = new Chart(performanceChartCanvas, {
             type: 'line',
@@ -51,6 +57,114 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: {
                             display: true,
                             text: '日期'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 初始化饼图（资产分布）
+    if (assetDistributionChartCanvas) {
+        assetDistributionChart = new Chart(assetDistributionChartCanvas, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(199, 199, 199, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(199, 199, 199, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: '资产类型分布'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ¥${value.toFixed(2)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 初始化柱状图（资产收益）
+    if (assetProfitChartCanvas) {
+        assetProfitChart = new Chart(assetProfitChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '资产收益',
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: '各资产收益情况'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.raw || 0;
+                                return `${label}: ¥${value.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '收益 (元)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '资产名称'
                         }
                     }
                 }
@@ -183,13 +297,135 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // 获取资产分布数据
+    function fetchAssetDistribution() {
+        if (!assetDistributionChart) {
+            console.log('资产分布图表未初始化');
+            return;
+        }
+        
+        fetch('/api/portfolio')
+            .then(response => response.json())
+            .then(data => {
+                console.log('资产分布数据:', data);
+                if (data.error) {
+                    console.error('获取资产分布数据失败:', data.error);
+                } else if (data.assets && Array.isArray(data.assets)) {
+                    // 按资产类型分组
+                    const assetsByType = {};
+                    data.assets.forEach(asset => {
+                        const type = asset.type || '未知';
+                        const value = parseFloat(asset.quantity) * parseFloat(asset.current_price) || 0;
+                        
+                        if (!assetsByType[type]) {
+                            assetsByType[type] = 0;
+                        }
+                        assetsByType[type] += value;
+                    });
+                    
+                    // 转换为图表数据
+                    const labels = [];
+                    const values = [];
+                    
+                    // 定义类型名称映射
+                    const typeNames = {
+                        'stock': '股票',
+                        'bond': '债券',
+                        'cash': '现金',
+                        'unknown': '未知'
+                    };
+                    
+                    for (const type in assetsByType) {
+                        labels.push(typeNames[type] || type);
+                        values.push(assetsByType[type]);
+                    }
+                    
+                    // 更新图表
+                    assetDistributionChart.data.labels = labels;
+                    assetDistributionChart.data.datasets[0].data = values;
+                    assetDistributionChart.update();
+                }
+            })
+            .catch(error => {
+                console.error('获取资产分布数据时发生错误:', error);
+            });
+    }
+    
+    // 获取资产收益数据
+    function fetchAssetProfit() {
+        if (!assetProfitChart) {
+            console.log('资产收益图表未初始化');
+            return;
+        }
+        
+        fetch('/api/portfolio')
+            .then(response => response.json())
+            .then(data => {
+                console.log('资产收益数据:', data);
+                if (data.error) {
+                    console.error('获取资产收益数据失败:', data.error);
+                } else if (data.assets && Array.isArray(data.assets)) {
+                    // 计算每个非现金资产的收益
+                    const assetProfits = data.assets
+                        .filter(asset => asset.type !== 'cash') // 排除现金资产
+                        .map(asset => {
+                            const name = asset.name || asset.symbol || '未知资产';
+                            const currentPrice = parseFloat(asset.current_price) || 0;
+                            const purchasePrice = parseFloat(asset.purchase_price) || 0;
+                            const quantity = parseFloat(asset.quantity) || 0;
+                            const profit = (currentPrice - purchasePrice) * quantity;
+                            const type = asset.type || '未知';
+                            
+                            return {
+                                name: name,
+                                profit: profit,
+                                type: type
+                            };
+                        });
+                    
+                    // 按收益排序（从高到低）
+                    assetProfits.sort((a, b) => b.profit - a.profit);
+                    
+                    // 只取前10个资产
+                    const topAssets = assetProfits.slice(0, 10);
+                    
+                    // 转换为图表数据
+                    const labels = topAssets.map(asset => asset.name);
+                    const values = topAssets.map(asset => asset.profit);
+                    
+                    // 根据收益正负设置颜色
+                    const backgroundColors = values.map(value => 
+                        value >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)'
+                    );
+                    
+                    const borderColors = values.map(value => 
+                        value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)'
+                    );
+                    
+                    // 更新图表
+                    assetProfitChart.data.labels = labels;
+                    assetProfitChart.data.datasets[0].data = values;
+                    assetProfitChart.data.datasets[0].backgroundColor = backgroundColors;
+                    assetProfitChart.data.datasets[0].borderColor = borderColors;
+                    assetProfitChart.update();
+                }
+            })
+            .catch(error => {
+                console.error('获取资产收益数据时发生错误:', error);
+            });
+    }
+
     // 初始化数据
     fetchPortfolioOverview();
     fetchRecentAssets();
     fetchPerformanceData();
+    fetchAssetDistribution();
+    fetchAssetProfit();
 
     // 设置定时刷新
     setInterval(fetchPortfolioOverview, 60000); // 每分钟刷新一次
     setInterval(fetchRecentAssets, 60000);
     setInterval(fetchPerformanceData, 300000); // 每5分钟刷新一次
+    setInterval(fetchAssetDistribution, 60000);
+    setInterval(fetchAssetProfit, 60000);
 });

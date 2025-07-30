@@ -133,7 +133,8 @@ function createAssetRow(asset) {
             ¥${profit.toFixed(2)} (${profitRate.toFixed(2)}%)
         </td>
         <td>
-            <button class="btn btn-sm btn-danger" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">卖出</button>
+            <button class="action-btn sell-btn" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">卖出</button>
+            <button class="action-btn delete-btn" onclick="deleteAsset(${asset.id}, '${asset.name}')">删除</button>
         </td>
     `;
     
@@ -426,12 +427,43 @@ style.textContent = `
         background-color: #dc3545;
         color: white;
     }
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
     .btn-primary {
         background-color: #007bff;
         color: white;
     }
     .btn:hover {
         opacity: 0.8;
+    }
+    
+    /* 操作按钮样式 */
+    .action-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        border: none;
+        margin: 2px;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .sell-btn {
+        background-color: #007bff; /* 蓝色 */
+    }
+    
+    .delete-btn {
+        background-color: #dc3545; /* 红色 */
+    }
+    
+    .action-btn:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     
     /* 充值模态框样式 */
@@ -558,6 +590,37 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// 删除资产
+function deleteAsset(assetId, assetName) {
+    if (!confirm(`确定要删除 ${assetName} 这项资产吗？此操作不可恢复。`)) {
+        return;
+    }
+    
+    console.log('开始删除资产:', { assetId, assetName });
+    
+    fetch(`/api/portfolio/${assetId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        console.log('删除响应状态:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            console.error('删除失败:', data.error);
+            alert('删除失败: ' + data.error);
+        } else {
+            console.log('删除成功:', data);
+            alert('资产删除成功');
+            loadPortfolioData(); // 重新加载数据
+        }
+    })
+    .catch(error => {
+        console.error('删除时发生错误:', error);
+        alert('删除失败，请稍后重试');
+    });
+}
+
 // 将函数添加到全局作用域，以便HTML中的onclick可以访问
 window.closeRechargeModal = closeRechargeModal;
 window.setRechargeAmount = setRechargeAmount;
@@ -567,3 +630,4 @@ window.closeSellModal = closeSellModal;
 window.setSellQuantity = setSellQuantity;
 window.processSell = processSell;
 window.updatePrice = updatePrice;
+window.deleteAsset = deleteAsset;

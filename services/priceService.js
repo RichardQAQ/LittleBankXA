@@ -4,7 +4,7 @@ const pool = require('../db');
 class YahooFinanceService {
   constructor() {
     // UPDATED: Replaced the old API key with the new one.
-    this.apiKey = '7adef73d62mshf6f8e1f20039534p16bd23jsn2bebabc55430';
+    this.apiKey = 'e421e3ffb9msh2e743d617d08d4ep16df63jsn8cfb42d72bec';
     this.apiHost = 'yahoo-finance15.p.rapidapi.com';
     this.baseUrl = `https://${this.apiHost}/api/v1/markets`;
     
