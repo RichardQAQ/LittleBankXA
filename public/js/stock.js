@@ -115,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function displayHistoricalChart(symbol) {
         if (!symbol) {
-            chartContainer.style.height = '0px'; // 收起容器
+            chartContainer.classList.remove('active'); // Collapse the container
+            // Clear content after the transition finishes
             setTimeout(() => {
                 chartContainer.innerHTML = '';
             }, 400);
@@ -123,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         chartContainer.innerHTML = '<p class="loading">正在加载图表数据...</p>';
-        chartContainer.style.height = '400px'; // 展开容器显示加载/图表
+        chartContainer.classList.add('active'); // Expand the container to show loading message
 
         try {
             const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
@@ -134,64 +135,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const chartData = await response.json();
             console.log('获取到历史数据:', chartData);
             
-            // 创建图表
+            // Create the chart (existing logic)
             const ctx = document.createElement('canvas');
-            ctx.id = 'stock-chart';
-            chartContainer.innerHTML = '';
+            chartContainer.innerHTML = ''; // Clear loading message
             chartContainer.appendChild(ctx);
             
-            // 计算Y轴的最小值和最大值，使图表更好地展示价格波动
-            const values = chartData.values.map(v => parseFloat(v));
-            const minValue = Math.min(...values) * 0.995; // 最小值略低于数据最小值
-            const maxValue = Math.max(...values) * 1.005; // 最大值略高于数据最大值
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        label: `${symbol} 价格走势`,
-                        data: chartData.values,
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: `${symbol} 历史价格走势`
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            suggestedMin: minValue,
-                            suggestedMax: maxValue,
-                            title: {
-                                display: true,
-                                text: '价格 (元)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: '日期'
-                            }
-                        }
-                    }
-                }
+            // FIX: Pass the canvas element 'ctx' directly to the constructor.
+            new StockChart(ctx, {
+                labels: chartData.labels,
+                values: chartData.values,
+                symbol: symbol
             });
         } catch (error) {
             chartContainer.innerHTML = `<p class="error-message">无法加载 ${symbol} 的图表: ${error.message}</p>`;
             console.error('图表加载错误:', error);
+            // Ensure the container stays active to show the error
+            chartContainer.classList.add('active');
         }
     }
 

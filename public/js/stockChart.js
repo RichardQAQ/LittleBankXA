@@ -1,9 +1,10 @@
 // Create a new file: public/js/stockChart.js
 class StockChart {
-  constructor(containerId, chartData) {
-    this.container = document.getElementById(containerId);
-    if (!this.container) {
-      console.error(`Chart container with id "${containerId}" not found.`);
+  // FIX: The constructor now accepts the canvas element directly, not an ID.
+  constructor(canvasElement, chartData) {
+    this.canvas = canvasElement;
+    if (!this.canvas) {
+      console.error(`A valid canvas element was not provided.`);
       return;
     }
     this.chartData = chartData;
@@ -16,12 +17,9 @@ class StockChart {
     if (this.chartInstance) {
       this.chartInstance.destroy();
     }
-    // Add a canvas element for the chart
-    this.container.innerHTML = '<canvas></canvas>';
-    const canvas = this.container.querySelector('canvas');
 
     if (!this.chartData || !this.chartData.labels || !this.chartData.values || this.chartData.values.length === 0) {
-      this.container.innerHTML = '<p class="error-message">Could not load chart data.</p>';
+      // If there's no data, we don't need to do anything here as the parent function handles error messages.
       return;
     }
 
@@ -29,7 +27,7 @@ class StockChart {
     // CORRECTED: Filter out non-positive values to prevent erroneous '0' from skewing the axis.
     const validValues = this.chartData.values.filter(v => typeof v === 'number' && !isNaN(v) && v > 0);
     if (validValues.length === 0) {
-        this.container.innerHTML = '<p class="error-message">No valid data points to display.</p>';
+        console.error('No valid data points to display.');
         return;
     }
 
@@ -50,7 +48,7 @@ class StockChart {
     }
     // --- END: Calculate Y-axis range ---
 
-    this.chartInstance = new Chart(canvas, {
+    this.chartInstance = new Chart(this.canvas, { // FIX: Use this.canvas
       type: 'line',
       data: {
         labels: this.chartData.labels,

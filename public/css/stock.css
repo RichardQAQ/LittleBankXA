@@ -100,12 +100,19 @@
 }
 
 #historical-chart-container {
-    height: 400px;
-    transition: height 0.3s ease;
+    height: 0; /* Start with zero height */
+    overflow: hidden; /* Hide content when collapsed */
+    transition: height 0.4s ease-in-out, padding 0.4s ease-in-out; /* Smooth transition */
     margin-top: 20px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0 20px; /* No vertical padding when collapsed */
+}
+
+/* Add this new class to expand the container when it has content */
+#historical-chart-container.active {
+    height: 400px;
     padding: 20px;
 }
 
