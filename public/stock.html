@@ -29,13 +29,20 @@
         /* 股票详情图表容器样式 */
         #historical-chart-container {
             width: 100%;
-            height: 500px;
+            height: 0; /* Start with zero height */
             margin-top: 20px;
-            transition: height 0.4s ease;
+            transition: height 0.4s ease, padding 0.4s ease; /* Smooth transition */
             background-color: #f9f9f9;
             border-radius: 8px;
-            padding: 15px;
+            padding: 0 15px; /* No vertical padding when collapsed */
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden; /* Hide content when collapsed */
+        }
+
+        /* Active class to expand the container */
+        #historical-chart-container.active {
+            height: 500px; /* Expand to full height */
+            padding: 15px; /* Restore padding */
         }
         
         /* 股票市场容器 */
@@ -145,6 +152,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/stockChart.js"></script>
     <script src="js/stock.js"></script>
 </body>
 </html>

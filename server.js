@@ -419,6 +419,29 @@ apiRouter.post('/bonds/buy', async (req, res) => {
   }
 });
 
+// NEW: Add a consolidated endpoint for adding any asset from the add_asset.html page
+apiRouter.post('/portfolio', async (req, res) => {
+  try {
+    const userId = 1; // Assuming single user for now
+    const { assetType, symbol, name, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
+
+    if (assetType === 'stock') {
+      // Note: The purchaseDate from the form is not used here, as buyStock uses the current date.
+      // This is correct for real-time purchases.
+      const result = await portfolioService.buyStock(userId, symbol, name, purchasePrice, quantity);
+      res.json(result);
+    } else if (assetType === 'bond') {
+      const result = await portfolioService.buyBond(userId, symbol, name, purchasePrice, quantity, faceValue, couponRate, maturityDate);
+      res.json(result);
+    } else {
+      res.status(400).json({ error: 'Invalid asset type provided.' });
+    }
+  } catch (error) {
+    console.error('添加资产失败:', error);
+    res.status(500).json({ error: '添加资产失败: ' + error.message });
+  }
+});
+
 // 卖出资产
 apiRouter.post('/portfolio/sell', async (req, res) => {
   try {
@@ -568,261 +591,6 @@ apiRouter.get('/portfolio/performance', async (req, res) => {
   }
 });
 
-// 这个重复的端点已被删除
-
-// 获取债券列表
-apiRouter.get('/bonds', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM bonds');
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 获取投资组合
-apiRouter.get('/portfolio', async (req, res) => {
-  try {
-    console.log('调用 /api/portfolio');
-
-    
-    // 获取所有资产，包括股票和债券的详细信息
-    console.log('执行SQL查询获取投资组合资产');
-    const [portfolioItems] = await pool.query(
-      `SELECT * FROM (
-        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
-                s.name, s.symbol, s.current_price, 'stock' as type
-         FROM portfolio p
-         JOIN stocks s ON p.asset_type = 'stock' AND p.asset_id = s.id
-         )
-        UNION ALL
-        (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
-                b.name, b.symbol, b.current_price, 'bond' as type
-         FROM portfolio p
-         JOIN bonds b ON p.asset_type = 'bond' AND p.asset_id = b.id
-         )
-        ) AS combined_results
-        ORDER BY purchase_date DESC`, []
-    );
-    
-    console.log('投资组合查询结果:', portfolioItems);
-    res.json({
-      assets: portfolioItems
-    });
-  } catch (error) {
-    console.error('获取投资组合错误:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 添加资产到投资组合
-apiRouter.post('/portfolio', async (req, res) => {
-  try {
-    const { assetType, symbol, name, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
-    
-    // 假设只有一个用户，ID为1
-    const userId = 1;
-    let assetId;
-    
-    if (assetType === 'stock') {
-      // 检查股票是否已存在
-      const [stockExists] = await pool.query('SELECT id FROM stocks WHERE symbol = ?', [symbol]);
-      
-      if (stockExists.length > 0) {
-        // 股票已存在，使用现有ID
-        assetId = stockExists[0].id;
-      } else {
-        // 股票不存在，创建新股票
-        const [result] = await pool.query(
-          'INSERT INTO stocks (symbol, name, current_price) VALUES (?, ?, ?)',
-          [symbol, name, purchasePrice] // 假设当前价格等于购买价格
-        );
-        assetId = result.insertId;
-      }
-    } else if (assetType === 'bond') {
-      // 检查债券是否已存在
-      const [bondExists] = await pool.query('SELECT id FROM bonds WHERE symbol = ?', [symbol]);
-      
-      if (bondExists.length > 0) {
-        // 债券已存在，使用现有ID
-        assetId = bondExists[0].id;
-      } else {
-        // 债券不存在，创建新债券
-        const [result] = await pool.query(
-          'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current_price) VALUES (?, ?, ?, ?, ?, ?)',
-          [symbol, name, faceValue, couponRate, maturityDate, purchasePrice] // 假设当前价格等于购买价格
-        );
-        assetId = result.insertId;
-      }
-    } else {
-      return res.status(400).json({ error: '无效的资产类型' });
-    }
-    
-    // 将资产添加到投资组合
-    await pool.query(
-      'INSERT INTO portfolio (asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?)',
-      [assetType, assetId, quantity, purchasePrice, purchaseDate]
-      );
-    
-    res.json({ success: true, message: '资产添加成功' });
-  }
-  catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 从投资组合中删除资产
-apiRouter.delete('/portfolio/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    await pool.query('DELETE FROM portfolio WHERE id = ?', [id]);
-    
-    res.json({ success: true, message: '资产删除成功' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 卖出资产
-apiRouter.post('/portfolio/sell', async (req, res) => {
-  try {
-    const { assetId, quantity } = req.body;
-    
-    // 验证参数
-    if (!assetId || !quantity || isNaN(quantity) || quantity <= 0) {
-      return res.status(400).json({ error: '无效的卖出参数' });
-    }
-    
-    // 获取资产信息
-    const [assets] = await pool.query(
-      'SELECT p.*, s.current_price as stock_price, b.current_price as bond_price, '
-      + 's.symbol as stock_symbol, b.symbol as bond_symbol, '
-      + 's.name as stock_name, b.name as bond_name '
-      + 'FROM portfolio p '
-      + 'LEFT JOIN stocks s ON p.asset_type = \'stock\' AND p.asset_id = s.id '
-      + 'LEFT JOIN bonds b ON p.asset_type = \'bond\' AND p.asset_id = b.id '
-      + 'WHERE p.id = ?',
-      [assetId]
-    );
-    
-    if (assets.length === 0) {
-      return res.status(404).json({ error: '未找到该资产' });
-    }
-    
-    const asset = assets[0];
-    const sellQuantity = parseFloat(quantity);
-    const currentQuantity = parseFloat(asset.quantity);
-    
-    if (sellQuantity > currentQuantity) {
-      return res.status(400).json({ error: '卖出数量超过持有数量' });
-    }
-    
-    // 获取当前价格
-    let currentPrice;
-    if (asset.asset_type === 'stock') {
-      currentPrice = parseFloat(asset.stock_price);
-    } else if (asset.asset_type === 'bond') {
-      currentPrice = parseFloat(asset.bond_price);
-    } else {
-      return res.status(400).json({ error: '不支持的资产类型' });
-    }
-    
-    // 计算卖出金额
-    const sellAmount = currentPrice * sellQuantity;
-    
-    // 更新投资组合
-    if (sellQuantity === currentQuantity) {
-      // 全部卖出，删除资产
-      await pool.query('DELETE FROM portfolio WHERE id = ?', [assetId]);
-    } else {
-      // 部分卖出，更新数量
-      const newQuantity = currentQuantity - sellQuantity;
-      await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [newQuantity, assetId]);
-    }
-    
-    // 增加现金余额
-    const userId = 1; // 假设只有一个用户
-    const cashAssetType = 'cash';
-    const cashAssetId = 0;
-    
-    // 检查是否已有现金资产
-    const [cashExists] = await pool.query(
-      'SELECT id, quantity FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ?',
-      [userId, cashAssetType, cashAssetId]
-    );
-    
-    if (cashExists.length > 0) {
-      // 已有现金资产，更新数量
-      const newCashQuantity = parseFloat(cashExists[0].quantity) + sellAmount;
-      await pool.query(
-        'UPDATE portfolio SET quantity = ? WHERE id = ?',
-        [newCashQuantity, cashExists[0].id]
-      );
-    } else {
-      // 没有现金资产，创建新记录
-      const purchasePrice = 1; // 现金的购买价格为1
-      const purchaseDate = new Date().toISOString().split('T')[0];
-      
-      await pool.query(
-        'INSERT INTO portfolio (asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?)',
-        [cashAssetType, cashAssetId, sellAmount, purchasePrice, purchaseDate]
-      );
-    }
-    
-    res.json({ success: true, message: '资产卖出成功', amount: sellAmount });
-  } catch (error) {
-    console.error('卖出资产错误:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 充值现金到投资组合
-apiRouter.post('/portfolio/recharge', async (req, res) => {
-  try {
-    const { amount } = req.body;
-    
-    // 验证金额
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: '无效的充值金额' });
-    }
-    
-    // 假设只有一个用户，ID为1
-    const userId = 1;
-    const assetType = 'cash';
-    const assetId = 0;
-    
-    // 检查是否已有现金资产
-    const [cashExists] = await pool.query(
-      'SELECT id, quantity FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ?',
-      [userId, assetType, assetId]
-    );
-    
-    if (cashExists.length > 0) {
-      // 已有现金资产，更新数量
-      const newQuantity = parseFloat(cashExists[0].quantity) + parseFloat(amount);
-      await pool.query(
-        'UPDATE portfolio SET quantity = ? WHERE id = ?',
-        [newQuantity, cashExists[0].id]
-      );
-    } else {
-      // 没有现金资产，创建新记录
-      const quantity = amount;
-      const purchasePrice = 1; // 现金的购买价格为1
-      const purchaseDate = new Date().toISOString().split('T')[0];
-      
-      await pool.query(
-        'INSERT INTO portfolio (asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?)',
-        [assetType, assetId, quantity, purchasePrice, purchaseDate]
-      );
-    }
-    
-    res.json({ success: true, message: '充值成功' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 apiRouter.get('/history', async (req, res) => {
   try {
       const [rows] = await pool.query(`
@@ -952,6 +720,28 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   } catch (error) {
     console.error(`Error fetching history for ${symbol}:`, error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// NEW: API route to get historical price for a stock on a specific date
+apiRouter.get('/stocks/:symbol/price-on-date', async (req, res) => {
+  const { symbol } = req.params;
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ error: 'Date parameter is required' });
+  }
+
+  try {
+    const price = await priceService.fetchPriceForDate(symbol, date);
+    if (price !== null) {
+      res.json({ price });
+    } else {
+      res.status(404).json({ error: 'Price not found for the selected date.' });
+    }
+  } catch (error) {
+    console.error('Failed to fetch historical price:', error);
+    res.status(500).json({ error: 'Failed to fetch historical price.' });
   }
 });
 

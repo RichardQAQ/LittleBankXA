@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function displayHistoricalChart(symbol) {
         if (!symbol) {
             chartContainer.classList.remove('active'); // Collapse the container
-            // Clear content after the transition finishes
+            // Clear content after the transition finishes for a smooth effect
             setTimeout(() => {
                 chartContainer.innerHTML = '';
             }, 400);
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         chartContainer.innerHTML = '<p class="loading">正在加载图表数据...</p>';
-        chartContainer.classList.add('active'); // Expand the container to show loading message
+        chartContainer.classList.add('active'); // Expand the container
 
         try {
             const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
@@ -129,14 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || `获取数据失败: ${response.statusText}`);
             }
             const chartData = await response.json();
-            console.log('获取到历史数据:', chartData);
             
-            // Create the chart (existing logic)
             const ctx = document.createElement('canvas');
             chartContainer.innerHTML = ''; // Clear loading message
             chartContainer.appendChild(ctx);
             
-            // FIX: Pass the canvas element 'ctx' directly to the constructor.
+            // Pass the canvas element 'ctx' directly to the constructor.
             new StockChart(ctx, {
                 labels: chartData.labels,
                 values: chartData.values,
@@ -144,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             chartContainer.innerHTML = `<p class="error-message">无法加载 ${symbol} 的图表: ${error.message}</p>`;
-            console.error('图表加载错误:', error);
             // Ensure the container stays active to show the error
             chartContainer.classList.add('active');
         }

@@ -1,6 +1,6 @@
 // Create a new file: public/js/stockChart.js
 class StockChart {
-  // FIX: The constructor now accepts the canvas element directly, not an ID.
+  // The constructor should accept the canvas element directly.
   constructor(canvasElement, chartData) {
     this.canvas = canvasElement;
     if (!this.canvas) {
@@ -48,7 +48,8 @@ class StockChart {
     }
     // --- END: Calculate Y-axis range ---
 
-    this.chartInstance = new Chart(this.canvas, { // FIX: Use this.canvas
+    // The chart should be created using the canvas element property.
+    this.chartInstance = new Chart(this.canvas, {
       type: 'line',
       data: {
         labels: this.chartData.labels,
