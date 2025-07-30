@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的关注 - 投资组合管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/stock-market.css">
+    <style>
+        /* 关注列表样式 */
+        .watchlist-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .watchlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .watchlist-title {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        
+        .update-all-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .update-all-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .watchlist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .watchlist-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #2980b9;
+            font-size: 1.1em;
+        }
+        
+        .watchlist-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        .watchlist-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .stock-symbol {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stock-name {
+            color: #7f8c8d;
+        }
+        
+        .stock-price {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .positive {
+            color: #2ecc71;
+        }
+        
+        .negative {
+            color: #e74c3c;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .view-btn, .buy-btn, .remove-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        .view-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .view-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .buy-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .buy-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .remove-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .remove-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .empty-watchlist {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .add-stock-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .add-stock-form input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .add-stock-form button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .add-stock-form button:hover {
+            background-color: #2980b9;
+        }
+        
+        .loading, .error, .success {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .loading {
+            background-color: #f8f9fa;
+            border-left: 5px solid #3498db;
+        }
+        
+        .error {
+            background-color: #fef0f0;
+            border-left: 5px solid #e74c3c;
+            color: #e74c3c;
+        }
+        
+        .success {
+            background-color: #eafaf1;
+            border-left: 5px solid #2ecc71;
+            color: #2ecc71;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>投资组合管理系统</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">首页</a></li>
+                <li><a href="portfolio.html">投资组合</a></li>
+                <li><a href="stock.html">股票市场</a></li>
+                <li><a href="bond.html">债券市场</a></li>
+                <li><a href="add_asset.html">添加资产</a></li>
+                <li><a href="watchlist.html" class="active">我的关注</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="watchlist-section">
+            <h2>我的关注列表</h2>
+            
+            <div class="watchlist-container">
+                <div class="watchlist-header">
+                    <h3 class="watchlist-title">关注的股票</h3>
+                    <button id="update-all-prices" class="update-all-btn">更新所有价格</button>
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">正在加载数据...</div>
+                <div id="message" class="success" style="display: none;"></div>
+                
+                <div class="add-stock-form">
+                    <input type="text" id="stock-symbol" placeholder="输入股票代码 (例如: AAPL)" autocomplete="off">
+                    <button id="add-to-watchlist">添加到关注列表</button>
+                </div>
+                
+                <table class="watchlist-table">
+                    <thead>
+                        <tr>
+                            <th>股票代码</th>
+                            <th>股票名称</th>
+                            <th>当前价格</th>
+                            <th>涨跌幅</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlist-body">
+                        <!-- 关注列表数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+                
+                <div id="empty-watchlist" class="empty-watchlist" style="display: none;">
+                    <p>您的关注列表为空。请使用上方的表单添加股票到关注列表。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 投资组合管理系统</p>
+    </footer>
+
+    <script src="js/watchlist.js"></script>
+</body>
+</html>

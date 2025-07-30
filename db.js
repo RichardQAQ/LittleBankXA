@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
 const dbConfig = {
   host: 'localhost',
   user: 'root', // 默认用户名，根据实际情况修改
-  password: 'n3u3da!', // Anaconda MySQL可能没有设置密码
+  password: '624135', // 使用空密码
   database: 'investment_system', // 数据库名称，稍后我们会创建
   waitForConnections: true,
   connectionLimit: 10,
