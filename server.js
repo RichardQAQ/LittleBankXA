@@ -310,8 +310,8 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
     // 如果API获取失败或没有返回数据，使用数据库中的数据
     console.log(`使用数据库中的股票 ${symbol} 数据`);
     
-    // 生成更真实的涨跌幅数据（-3%到+3%之间的随机值）
-    const changePercent = (Math.random() * 6 - 3).toFixed(2);
+    // FIX: Use the change_percent from the database instead of generating a random one.
+    const changePercent = parseFloat(stock.change_percent) || 0;
     
     const volume = stock.volume || Math.floor(Math.random() * 1000000) + 100000;
     const marketCap = stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000);
