@@ -220,6 +220,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 更新所有股票价格
+    async function updateAllStockPrices() {
+        showLoading();
+        showError('正在更新所有股票价格...', true);
+        
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            if (!response.ok) {
+                throw new Error('更新所有股票价格失败');
+            }
+            const result = await response.json();
+            showError(result.message || '所有股票价格更新成功', true);
+            // 重新加载股票列表
+            loadStockList();
+        } catch (error) {
+            showError('更新所有股票价格失败: ' + error.message);
+            console.error('更新所有股票价格失败:', error);
+        } finally {
+            hideLoading();
+        }
+    }
+
     // 加载股票列表
     async function loadStockList() {
         console.log('加载股票列表');

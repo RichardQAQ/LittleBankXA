@@ -727,7 +727,6 @@ apiRouter.delete('/portfolio/:id', async (req, res) => {
     await pool.query('DELETE FROM portfolio WHERE id = ?', [id]);
     
     // 更新用户资产总值
-    // FIX: Call updateUserAssetValues through the portfolioService object.
     await portfolioService.updateUserAssetValues(1);
     
     res.json({ success: true, message: '资产删除成功' });
