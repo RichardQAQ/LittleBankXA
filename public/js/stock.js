@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockSymbolInput = document.getElementById('stock-symbol');
     const searchStockButton = document.getElementById('search-stock');
     const updatePriceButton = document.getElementById('update-price');
+    const updateAllPricesBtn = document.getElementById('update-all-prices-btn'); // Get the new button
     const loadingIndicator = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const stockDataElement = document.getElementById('stock-data');
@@ -36,6 +37,28 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStockPrice(symbol);
         } else {
             showError('请输入股票代码');
+        }
+    });
+
+    // NEW: Event listener for the "Update All Prices" button
+    updateAllPricesBtn.addEventListener('click', async () => {
+        showLoading();
+        try {
+            const response = await fetch('/api/stocks/update-all', { method: 'POST' });
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                throw new Error(result.error || '批量更新失败');
+            }
+            
+            showError(result.message, true); // Use showError to display success message
+            loadStockList(); // Refresh the list to show new prices
+
+        } catch (error) {
+            showError(error.message);
+            console.error('批量更新失败:', error);
+        } finally {
+            hideLoading();
         }
     });
 

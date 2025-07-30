@@ -4,7 +4,7 @@ const pool = require('../db');
 class YahooFinanceService {
   constructor() {
     // UPDATED: Replaced the old API key with the new one.
-    this.apiKey = '7adef73d62mshf6f8e1f20039534p16bd23jsn2bebabc55430';
+    this.apiKey = 'e421e3ffb9msh2e743d617d08d4ep16df63jsn8cfb42d72bec';
     this.apiHost = 'yahoo-finance15.p.rapidapi.com';
     this.baseUrl = `https://${this.apiHost}/api/v1/markets`;
     
@@ -172,55 +172,77 @@ class YahooFinanceService {
     }
   }
 
+  /**
+   * Updates the database with a list of stock data.
+   * This function now correctly handles both updating existing stocks and inserting new ones.
+   * @param {Array<object>} stockDataList - A list of stock data objects from the API.
+   * @returns {Promise<number>} The total number of stocks processed (updated + inserted).
+   */
   async updateStocksInDatabase(stockDataList) {
     if (!stockDataList || stockDataList.length === 0) {
       console.log('No valid stock data was parsed to update the database.');
       return 0;
     }
 
-    let updatedCount = 0;
-    const newStocksToInsert = [];
+    // Get all existing stock symbols from the database for an efficient lookup.
+    const [existingStocks] = await pool.query('SELECT symbol FROM stocks');
+    const existingSymbols = new Set(existingStocks.map(s => s.symbol));
 
+    const stocksToUpdate = [];
+    const stocksToInsert = [];
+
+    // Separate the fetched stocks into two groups: those to update and those to insert.
     for (const stockData of stockDataList) {
       if (!stockData.symbol || stockData.current_price === undefined) {
         console.warn('Skipping invalid stock data:', stockData);
         continue;
       }
 
-      try {
-        const [updateResult] = await pool.query(
-          `UPDATE stocks SET current_price = ?, change_percent = ?, name = ?, last_updated = NOW() WHERE symbol = ?`,
-          [stockData.current_price, stockData.change_percent, stockData.name, stockData.symbol]
-        );
-
-        if (updateResult.affectedRows > 0) {
-          updatedCount++;
-        } else {
-          newStocksToInsert.push([
-            stockData.symbol,
-            stockData.name,
-            stockData.current_price,
-            stockData.change_percent
-          ]);
-        }
-      } catch (error) {
-        console.error(`Error processing database update for ${stockData.symbol}:`, error.message);
+      if (existingSymbols.has(stockData.symbol)) {
+        stocksToUpdate.push(stockData);
+      } else {
+        stocksToInsert.push([
+          stockData.symbol,
+          stockData.name,
+          stockData.current_price,
+          stockData.change_percent
+        ]);
       }
     }
 
-      if (newStocksToInsert.length > 0) {
+    let updatedCount = 0;
+    let insertedCount = 0;
+
+    // Perform a single bulk insert for all new stocks for better performance.
+    if (stocksToInsert.length > 0) {
       try {
-        // 使用MySQL的INSERT IGNORE语法，忽略重复键错误
-        const insertQuery = `INSERT IGNORE INTO stocks (symbol, name, current_price, change_percent) VALUES ?`;
-        const [insertResult] = await pool.query(insertQuery, [newStocksToInsert]);
-        console.log(`Bulk inserted ${insertResult.affectedRows} new stocks.`);
-        updatedCount += insertResult.affectedRows;
+        const insertQuery = `INSERT INTO stocks (symbol, name, current_price, change_percent) VALUES ?`;
+        const [insertResult] = await pool.query(insertQuery, [stocksToInsert]);
+        insertedCount = insertResult.affectedRows;
+        console.log(`Bulk inserted ${insertedCount} new stocks.`);
       } catch (error) {
         console.error('Error during bulk insert of new stocks:', error.message);
       }
     }
+
+    // Update existing stocks individually.
+    if (stocksToUpdate.length > 0) {
+        for (const stockData of stocksToUpdate) {
+            try {
+                // FIX: Changed column name from 'last_updated' to 'updated_at' to match the database schema.
+                await pool.query(
+                    `UPDATE stocks SET current_price = ?, change_percent = ?, name = ?, updated_at = NOW() WHERE symbol = ?`,
+                    [stockData.current_price, stockData.change_percent, stockData.name, stockData.symbol]
+                );
+            } catch (error) {
+                console.error(`Error updating stock ${stockData.symbol}:`, error.message);
+            }
+        }
+        updatedCount = stocksToUpdate.length;
+    }
     
-    return updatedCount;
+    // Return the total count of stocks processed.
+    return updatedCount + insertedCount;
   }
 
   async updateAllStockPrices() {

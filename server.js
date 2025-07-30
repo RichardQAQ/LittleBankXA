@@ -170,25 +170,31 @@ apiRouter.get('/portfolio', async (req, res) => {
 // 获取股票列表
 apiRouter.get('/stocks', async (req, res) => {
   try {
+    // FIX: First, trigger a background update for all stocks in the watchlist.
+    // We don't need to wait for it to complete here, but this ensures data freshness over time.
+    // For an immediate refresh, we await the result.
+    console.log('Updating all stock prices before fetching list...');
+    await priceService.updateAllStockPrices();
+    console.log('Price update complete. Fetching list from database.');
+
     const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
     
     const formattedStocks = stocks.map(stock => {
-      // 生成随机的涨跌幅数据（-3%到+3%之间的随机值）
-      const changePercent = (Math.random() * 6 - 3).toFixed(2);
+      // The change_percent will now come from the database, so no need to randomize it.
+      const changePercent = parseFloat(stock.change_percent) || 0;
       
       return {
         id: stock.id,
         symbol: stock.symbol,
         name: stock.name || stock.symbol,
         current_price: parseFloat(stock.current_price),
-        change_percent: parseFloat(changePercent),
+        change_percent: changePercent,
         volume: stock.volume || Math.floor(Math.random() * 1000000) + 100000,
         market_cap: stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
         updated_at: stock.last_updated || new Date()
       };
     });
     
-    console.log('返回股票列表:', formattedStocks);
     res.json(formattedStocks);
   } catch (error) {
     console.error('获取股票列表失败:', error);
@@ -338,6 +344,22 @@ apiRouter.post('/stocks/buy', async (req, res) => {
   } catch (error) {
     console.error('购买股票失败:', error);
     res.status(500).json({ error: '购买失败: ' + error.message });
+  }
+});
+
+// NEW: API route to update all stock prices
+apiRouter.post('/stocks/update-all', async (req, res) => {
+  try {
+    console.log('Received request to update all stock prices.');
+    const result = await priceService.updateAllStockPrices();
+    if (result.success) {
+      res.json({ success: true, message: `成功更新 ${result.updated} 支股票的价格。`, details: result });
+    } else {
+      throw new Error(result.error || 'Batch update failed.');
+    }
+  } catch (error) {
+    console.error('批量更新股票价格失败:', error);
+    res.status(500).json({ error: '批量更新失败: ' + error.message });
   }
 });
 
