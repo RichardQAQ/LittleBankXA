@@ -27,9 +27,11 @@
             <h2>股票市场</h2>
             
             <div class="search-bar">
-                <input type="text" id="stock-symbol" placeholder="输入股票代码 (例如: AAPL)">
+                <input type="text" id="stock-symbol" placeholder="输入股票代码 (例如: AAPL)" autocomplete="off">
                 <button id="search-stock">查询</button>
                 <button id="update-price">更新价格</button>
+                <!-- NEW: Container for autocomplete results -->
+                <div id="autocomplete-results" class="autocomplete-items"></div>
             </div>
 
             <div class="stock-details" id="stock-details">

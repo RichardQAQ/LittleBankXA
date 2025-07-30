@@ -196,6 +196,21 @@ apiRouter.get('/stocks', async (req, res) => {
   }
 });
 
+// NEW: API route for stock symbol search (autocomplete)
+apiRouter.get('/stocks/search', async (req, res) => {
+  const { query } = req.query;
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter is required' });
+  }
+  try {
+    const results = await priceService.searchSymbol(query);
+    res.json(results);
+  } catch (error) {
+    console.error('Stock search failed:', error);
+    res.status(500).json({ error: 'Failed to search for stocks' });
+  }
+});
+
 // 获取单个股票数据
 apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   try {

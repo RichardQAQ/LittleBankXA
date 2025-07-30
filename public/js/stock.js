@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockDataElement = document.getElementById('stock-data');
     const stockTableBody = document.getElementById('stock-table-body');
     const chartContainer = document.getElementById('historical-chart-container');
+    const autocompleteResults = document.getElementById('autocomplete-results'); // Get the new container
 
 
     // 隐藏加载指示器和错误提示
@@ -35,6 +36,55 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStockPrice(symbol);
         } else {
             showError('请输入股票代码');
+        }
+    });
+
+    // NEW: Event listener for autocomplete search
+    stockSymbolInput.addEventListener('input', async () => {
+        const query = stockSymbolInput.value.trim();
+        if (query.length < 2) {
+            autocompleteResults.innerHTML = '';
+            autocompleteResults.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/stocks/search?query=${query}`);
+            if (!response.ok) return;
+            
+            const results = await response.json();
+            displayAutocomplete(results);
+        } catch (error) {
+            console.error('Autocomplete fetch failed:', error);
+        }
+    });
+
+    // NEW: Function to display autocomplete results
+    function displayAutocomplete(results) {
+        if (!results || results.length === 0) {
+            autocompleteResults.style.display = 'none';
+            return;
+        }
+
+        autocompleteResults.innerHTML = '';
+        results.slice(0, 7).forEach(item => { // Show top 7 results
+            const itemDiv = document.createElement('div');
+            itemDiv.innerHTML = `<strong>${item.symbol}</strong> - ${item.shortname}`;
+            itemDiv.addEventListener('click', () => {
+                stockSymbolInput.value = item.symbol;
+                autocompleteResults.innerHTML = '';
+                autocompleteResults.style.display = 'none';
+                getStockData(item.symbol); // Automatically search when clicked
+            });
+            autocompleteResults.appendChild(itemDiv);
+        });
+        autocompleteResults.style.display = 'block';
+    }
+
+    // Hide dropdown when clicking elsewhere
+    document.addEventListener('click', (e) => {
+        if (e.target !== stockSymbolInput) {
+            autocompleteResults.style.display = 'none';
         }
     });
 

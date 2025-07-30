@@ -3,7 +3,8 @@ const pool = require('../db');
 
 class YahooFinanceService {
   constructor() {
-    this.apiKey = '762262b167mshf5fc58542fa213ap1277ebjsn881b2caee433';
+    // UPDATED: Replaced the old API key with the new one.
+    this.apiKey = '7adef73d62mshf6f8e1f20039534p16bd23jsn2bebabc55430';
     this.apiHost = 'yahoo-finance15.p.rapidapi.com';
     this.baseUrl = `https://${this.apiHost}/api/v1/markets`;
     
@@ -262,7 +263,8 @@ class YahooFinanceService {
       const response = await axios.request({
         method: 'GET',
         url: `${this.baseUrl}/search`,
-        params: { query: query, type: 'STOCKS' },
+        // FIX: The API parameter is 'search', not 'query'.
+        params: { search: query, type: 'STOCKS' },
         headers: {
           'x-rapidapi-key': this.apiKey,
           'x-rapidapi-host': this.apiHost,
