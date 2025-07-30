@@ -188,10 +188,11 @@ apiRouter.get('/stocks', async (req, res) => {
         symbol: stock.symbol,
         name: stock.name || stock.symbol,
         current_price: parseFloat(stock.current_price),
+        price: parseFloat(stock.current_price), // FIX: Add 'price' for consistency with other endpoints.
         change_percent: changePercent,
         volume: stock.volume || Math.floor(Math.random() * 1000000) + 100000,
         market_cap: stock.market_cap || parseFloat(stock.current_price) * Math.floor(Math.random() * 1000000000),
-        updated_at: stock.last_updated || new Date()
+        updated_at: stock.updated_at || new Date() // FIX: Corrected 'last_updated' to 'updated_at'.
       };
     });
     
@@ -681,9 +682,10 @@ apiRouter.post('/portfolio', async (req, res) => {
     }
     
     // 将资产添加到投资组合
+    // FIX: Removed the 'name' column from the INSERT statement as it does not exist in the portfolio table.
     await pool.query(
-      'INSERT INTO portfolio (asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?)',
-      [assetType, assetId, quantity, purchasePrice, purchaseDate]
+      'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, 1)',
+      [userId, assetType, assetId, quantity, purchasePrice, purchaseDate]
       );
     
     res.json({ success: true, message: '资产添加成功' });

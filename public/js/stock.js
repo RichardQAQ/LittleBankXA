@@ -258,32 +258,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 显示股票列表
     function displayStockList(stocks) {
-        stockTableBody.innerHTML = '';
+        let html = '';
         stocks.forEach(stock => {
-            const row = document.createElement('tr');
-            
-            // 计算涨跌颜色
-            const changeClass = parseFloat(stock.change_percent) >= 0 ? 'positive' : 'negative';
-            const changeSign = parseFloat(stock.change_percent) >= 0 ? '+' : '';
-            
-            row.innerHTML = `
-            <td>${stock.id}</td>
-            <td>${stock.symbol}</td>
-            <td>${new Date(stock.updated_at).toLocaleDateString()}</td>
-            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
-            <td>¥${(parseFloat(stock.current_price) * 0.99).toFixed(2)}</td>
-            <td>¥${(parseFloat(stock.current_price) * 1.01).toFixed(2)}</td>
-            <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
-            <td>${stock.volume.toLocaleString()}</td>
-            <td>${stock.id}</td>
-            <td>
-                <button class="view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查看</button>
-                <button class="update-btn" data-symbol="${stock.symbol}">更新价格</button>
-                <button class="buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
-            </td>
-        `;
-            stockTableBody.appendChild(row);
+            const changeClass = stock.change_percent >= 0 ? 'positive' : 'negative';
+            const changeSign = stock.change_percent >= 0 ? '+' : '';
+            html += `
+                <tr>
+                    <td><a href="#" class="stock-link" data-symbol="${stock.symbol}">${stock.symbol}</a></td>
+                    <td>${stock.name}</td>
+                    <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
+                    <td class="${changeClass}">${changeSign}${parseFloat(stock.change_percent).toFixed(2)}%</td>
+                    <td>${formatNumber(stock.volume)}</td>
+                    <td>¥${formatNumber(stock.market_cap)}</td>
+                    <td>
+                        <!-- FIX: Add the data-price attribute to the button -->
+                        <button class="btn btn-sm btn-success buy-btn" 
+                                data-symbol="${stock.symbol}" 
+                                data-name="${stock.name}" 
+                                data-price="${stock.current_price}">购买</button>
+                    </td>
+                </tr>
+            `;
         });
+        stockTableBody.innerHTML = html;
 
         // 为查看按钮添加事件监听
         document.querySelectorAll('.view-btn').forEach(button => {
@@ -308,8 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
                 const name = e.target.getAttribute('data-name');
+                const price = e.target.getAttribute('data-price'); // Get the price from the data attribute
                 // 跳转到添加资产页面，并传递股票信息
-                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}`;
+                // FIX: Add the price to the URL query parameters
+                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}&price=${price}`;
             });
         });
     }
