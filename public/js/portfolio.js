@@ -133,7 +133,6 @@ function createAssetRow(asset) {
             ¥${profit.toFixed(2)} (${profitRate.toFixed(2)}%)
         </td>
         <td>
-            <button class="btn btn-sm btn-secondary" onclick="updatePrice('${asset.type}', '${asset.symbol}')">更新价格</button>
             <button class="btn btn-sm btn-danger" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">卖出</button>
         </td>
     `;
