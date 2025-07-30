@@ -99,6 +99,7 @@
     background-color: #2980b9;
 }
 
+/* 增大图表容器高度和改进样式 */
 #historical-chart-container {
     height: 0; /* Start with zero height */
     overflow: hidden; /* Hide content when collapsed */
@@ -114,6 +115,18 @@
 #historical-chart-container.active {
     height: 400px;
     padding: 20px;
+    width: 100%; /* 确保宽度占满 */
+    position: relative; /* 为调整大小功能添加 */
+    resize: vertical; /* 允许垂直调整大小 */
+    overflow: auto; /* 添加滚动条以防内容溢出 */
+    min-height: 400px; /* 设置最小高度 */
+    max-height: 800px; /* 设置最大高度 */
+}
+
+/* 图表Y轴样式优化 */
+.chart-y-axis {
+    font-weight: bold;
+    color: #333;
 }
 
 .loading {
@@ -148,8 +161,10 @@ th, td {
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: #3498db;
+    color: white;
     font-weight: bold;
+    font-size: 1.1em;
 }
 
 tr:hover {
@@ -157,7 +172,7 @@ tr:hover {
 }
 
 /* 按钮样式 */
-.view-btn, .update-btn, .buy-btn {
+.view-btn, .update-btn, .buy-btn, #search-stock {
     padding: 6px 12px;
     margin-right: 5px;
     border: none;
@@ -191,4 +206,44 @@ tr:hover {
 
 .buy-btn:hover {
     background-color: #27ae60;
+}
+
+/* 添加全局更新价格按钮样式 */
+.update-all-prices-btn {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 20px;
+    float: right;
+}
+
+.update-all-prices-btn:hover {
+    background-color: #2980b9;
+}
+
+/* 关注列表样式优化 */
+.watchlist-table th, .watchlist-table td {
+    background-color: #fff;
+    color: #333;
+    font-weight: normal;
+}
+
+.watchlist-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    color: #333;
+}
+
+.watchlist-table .price-up {
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+.watchlist-table .price-down {
+    color: #e74c3c;
+    font-weight: bold;
 }

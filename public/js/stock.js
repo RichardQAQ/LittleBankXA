@@ -1,14 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const stockSymbolInput = document.getElementById('stock-symbol');
     const searchStockButton = document.getElementById('search-stock');
-    const updatePriceButton = document.getElementById('update-price');
     const loadingIndicator = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const stockDataElement = document.getElementById('stock-data');
     const stockTableBody = document.getElementById('stock-table-body');
     const chartContainer = document.getElementById('historical-chart-container');
     const autocompleteResults = document.getElementById('autocomplete-results'); // Get the new container
-
+    
+    // 获取全局更新价格按钮
+    const updateAllPricesBtn = document.getElementById('update-all-prices');
 
     // 隐藏加载指示器和错误提示
     loadingIndicator.style.display = 'none';
@@ -29,14 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 更新价格按钮点击事件
-    updatePriceButton.addEventListener('click', () => {
-        const symbol = stockSymbolInput.value.trim().toUpperCase();
-        if (symbol) {
-            updateStockPrice(symbol);
-        } else {
-            showError('请输入股票代码');
-        }
+    // 全局更新价格按钮点击事件
+    updateAllPricesBtn.addEventListener('click', async () => {
+        updateAllPrices();
     });
 
     // NEW: Event listener for autocomplete search
@@ -154,20 +150,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 更新股票价格
-    async function updateStockPrice(symbol) {
+    // 更新所有股票价格
+    async function updateAllPrices() {
         showLoading();
         try {
-            const response = await fetch(`/api/stocks/${symbol}/update`, { method: 'POST' });
+            const response = await fetch('/api/stocks/refresh?query=update');
+            
             if (!response.ok) {
-                throw new Error('更新股票价格失败');
+                throw new Error('更新所有股票价格失败');
             }
+            
             const result = await response.json();
-            showError(result.message, true);
+            showError(`成功更新了 ${result.updated || 0} 支股票的价格`, true);
+            
             // 重新加载股票列表
             loadStockList();
-            // 重新获取股票数据
-            getStockData(symbol);
+            
+            // 如果当前有显示的股票，重新获取其数据
+            const currentSymbol = stockSymbolInput.value.trim().toUpperCase();
+            if (currentSymbol) {
+                getStockData(currentSymbol);
+            }
         } catch (error) {
             showError(error.message);
         } finally {
@@ -255,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${stock.id}</td>
             <td>
                 <button class="view-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}">查看</button>
-                <button class="update-btn" data-symbol="${stock.symbol}">更新价格</button>
                 <button class="buy-btn" data-symbol="${stock.symbol}" data-name="${stock.name || stock.symbol}" data-price="${stock.current_price}">购买</button>
             </td>
         `;
@@ -271,22 +273,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 为更新价格按钮添加事件监听
-        document.querySelectorAll('.update-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const symbol = e.target.getAttribute('data-symbol');
-                stockSymbolInput.value = symbol;
-                updateStockPrice(symbol);
-            });
-        });
-
         // 为购买按钮添加事件监听
         document.querySelectorAll('.buy-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
                 const name = e.target.getAttribute('data-name');
+                const price = e.target.getAttribute('data-price');
                 // 跳转到添加资产页面，并传递股票信息
-                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}`;
+                window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}&price=${price}`;
             });
         });
     }
@@ -295,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLoading() {
         loadingIndicator.style.display = 'block';
         errorElement.style.display = 'none';
-        stockDataElement.innerHTML = '';
     }
 
     // 隐藏加载指示器
