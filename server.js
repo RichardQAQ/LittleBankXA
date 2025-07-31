@@ -126,7 +126,7 @@ apiRouter.get('/portfolio', async (req, res) => {
       // Add sample cash asset
       await pool.query(
         'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
-        [userId, 'cash', 0, '现金', 10000, 1]
+        [userId, 'cash', 0, 'Cash', 10000, 1]
       );
     }
     
@@ -148,7 +148,7 @@ apiRouter.get('/portfolio', async (req, res) => {
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
-                '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
+                'Cash' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
          FROM portfolio p
          WHERE p.asset_type = 'cash' AND p.user_id = ? AND p.status = 1
          )
@@ -542,7 +542,7 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
          )
         UNION ALL
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
-                '现金' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
+                'Cash' as name, 'CASH' as symbol, 1 as current_price, 'cash' as type
          FROM portfolio p
          WHERE p.asset_type = 'cash' AND p.user_id = ? AND p.status = 1
          )
