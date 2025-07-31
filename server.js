@@ -1021,7 +1021,17 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
 // Mount API routes
 app.use('/api', apiRouter);
 
-// Frontend routes - wrapped in try-catch
+
+// --- NEW: Swagger API Documentation Setup ---
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// --- END: Swagger Setup ---
+
+// 前端路由 - 使用try-catch包装
+
 app.get('*', (req, res) => {
   try {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
