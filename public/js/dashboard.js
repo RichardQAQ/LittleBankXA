@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: false,
                         title: {
                             display: true,
-                            text: 'Value (¥)'
+                            text: 'Value ($)'
                         }
                     },
                     x: {
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const value = context.raw || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const percentage = Math.round((value / total) * 100);
-                                return `${label}: ¥${value.toFixed(2)} (${percentage}%)`;
+                                return `${label}: $${value.toFixed(2)} (${percentage}%)`;
                             }
                         }
                     }
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             label: function(context) {
                                 const label = context.dataset.label || '';
                                 const value = context.raw || 0;
-                                return `${label}: ¥${value.toFixed(2)}`;
+                                return `${label}: $${value.toFixed(2)}`;
                             }
                         }
                     }
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Return (¥)'
+                            text: 'Return ($)'
                         }
                     },
                     x: {
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Format total assets, keep 2 decimal places
                     const totalValue = parseFloat(data.totalValue) || 0;
-                    const formattedValue = '¥' + totalValue.toFixed(2);
+                    const formattedValue = '$' + totalValue.toFixed(2);
                     totalValueElement.textContent = formattedValue;
                     
                     // Format return rate, keep 2 decimal places and add percentage symbol
@@ -258,9 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>${asset.name || 'Unknown'}</td>
                             <td>${assetType}</td>
                             <td>${quantity}</td>
-                            <td>¥${purchasePrice.toFixed(2)}</td>
-                            <td>¥${currentPrice.toFixed(2)}</td>
-                            <td class="${profitLossClass}">¥${profitLoss}</td>
+                            <td>$${purchasePrice.toFixed(2)}</td>
+                            <td>$${currentPrice.toFixed(2)}</td>
+                            <td class="${profitLossClass}">$${profitLoss}</td>
                         </tr>`;
                     });
                     html += '</tbody></table></div>';
