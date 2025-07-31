@@ -65,14 +65,14 @@ function displayPortfolioData(data) {
         const totalAssets = parseFloat(data.user.total_assets) || 0;
         const cashBalance = parseFloat(data.user.cash_balance) || 0;
         
-        totalAssetsElement.textContent = `¥${totalAssets.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        cashBalanceElement.textContent = `¥${cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        totalAssetsElement.textContent = `$${totalAssets.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        cashBalanceElement.textContent = `$${cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
         console.log('User asset information updated:', { totalAssets, cashBalance });
     } else {
         console.warn('User data not found');
-        totalAssetsElement.textContent = '¥0.00';
-        cashBalanceElement.textContent = '¥0.00';
+        totalAssetsElement.textContent = '$0.00';
+        cashBalanceElement.textContent = '$0.00';
     }
     
     // Display asset list
@@ -125,12 +125,12 @@ function createAssetRow(asset) {
         <td>${assetTypeText}</td>
         <td>${asset.symbol || ''}</td>
         <td>${quantity.toFixed(4)}</td>
-        <td>¥${purchasePrice.toFixed(2)}</td>
-        <td>¥${currentPrice.toFixed(2)}</td>
+        <td>$${purchasePrice.toFixed(2)}</td>
+        <td>$${currentPrice.toFixed(2)}</td>
         <td>${purchaseDate}</td>
-        <td>¥${totalValue.toFixed(2)}</td>
+        <td>$${totalValue.toFixed(2)}</td>
         <td class="${profit >= 0 ? 'profit-positive' : 'profit-negative'}">
-            ¥${profit.toFixed(2)} (${profitRate.toFixed(2)}%)
+            $${profit.toFixed(2)} (${profitRate.toFixed(2)}%)
         </td>
         <td>
             <button class="action-btn sell-btn" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">Sell</button>
@@ -260,7 +260,7 @@ function processSell(assetId) {
             alert('Sell failed: ' + data.error);
         } else {
             console.log('Sell successful:', data);
-            alert(`Sell successful! Received ¥${data.amount.toFixed(2)}`);
+            alert(`Sell successful! Received $${data.amount.toFixed(2)}`);
             closeSellModal();
             loadPortfolioData(); // Reload data
         }
@@ -289,13 +289,13 @@ function showRechargeModal() {
                 <span class="close-btn" onclick="closeRechargeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <label for="recharge-amount">Deposit Amount (¥):</label>
+                <label for="recharge-amount">Deposit Amount ($):</label>
                 <input type="number" id="recharge-amount" min="0.01" step="0.01" placeholder="Enter deposit amount">
                 <div class="quick-amounts">
-                    <button onclick="setRechargeAmount(1000)">¥1,000</button>
-                    <button onclick="setRechargeAmount(5000)">¥5,000</button>
-                    <button onclick="setRechargeAmount(10000)">¥10,000</button>
-                    <button onclick="setRechargeAmount(50000)">¥50,000</button>
+                    <button onclick="setRechargeAmount(1000)">$1,000</button>
+                    <button onclick="setRechargeAmount(5000)">$5,000</button>
+                    <button onclick="setRechargeAmount(10000)">$10,000</button>
+                    <button onclick="setRechargeAmount(50000)">$50,000</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -340,7 +340,7 @@ function processRecharge() {
         return;
     }
     
-    if (!confirm(`Confirm deposit of ¥${amount.toFixed(2)}?`)) {
+    if (!confirm(`Confirm deposit of $${amount.toFixed(2)}?`)) {
         return;
     }
     
@@ -373,7 +373,7 @@ function processRecharge() {
             alert('Deposit failed: ' + data.error);
         } else if (data.success) {
             console.log('Deposit successful:', data);
-            alert(`Deposit successful! Deposited ¥${parseFloat(data.amount).toFixed(2)}`);
+            alert(`Deposit successful! Deposited $${parseFloat(data.amount).toFixed(2)}`);
             closeRechargeModal();
             // Delay reloading data to ensure server-side update is complete
             setTimeout(() => {

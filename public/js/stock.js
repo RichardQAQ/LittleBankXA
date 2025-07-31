@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="stock-details">
                     <div class="price-info">
-                        <div class="current-price">¥${parseFloat(stockData.current_price || stockData.price).toFixed(2)}</div>
+                        <div class="current-price">$${parseFloat(stockData.current_price || stockData.price).toFixed(2)}</div>
                         <div class="price-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
                     </div>
                     <div class="stock-stats">
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Market Cap:</span>
-                            <span class="stat-value">¥${formatNumber(stockData.market_cap || 0)}</span>
+                            <span class="stat-value">$${formatNumber(stockData.market_cap || 0)}</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Updated:</span>
@@ -340,10 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr>
                     <td><a href="#" class="stock-link" data-symbol="${stock.symbol}">${stock.symbol}</a></td>
                     <td>${stock.name}</td>
-                    <td>¥${parseFloat(stock.current_price).toFixed(2)}</td>
+                    <td>$${parseFloat(stock.current_price).toFixed(2)}</td>
                     <td class="${changeClass}">${changeSign}${parseFloat(stock.change_percent).toFixed(2)}%</td>
                     <td>${formatNumber(stock.volume)}</td>
-                    <td>¥${formatNumber(stock.market_cap)}</td>
+                    <td>$${formatNumber(stock.market_cap)}</td>
                     <td>
                         <!-- FIX: Add the data-price attribute to the button -->
                         <button class="btn btn-sm btn-success buy-btn" 

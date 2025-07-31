@@ -117,13 +117,13 @@ function displaySingleBondResult(bond) {
             </div>
             <div class="stock-details">
                 <div class="price-info">
-                    <div class="current-price">¥${price.toFixed(2)}</div>
+                    <div class="current-price">$${price.toFixed(2)}</div>
                     <div class="price-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
                 </div>
                 <div class="stock-stats">
                     <div class="stat-item">
                         <span class="stat-label">Face Value:</span>
-                        <span class="stat-value">¥${faceValue.toFixed(2)}</span>
+                        <span class="stat-value">$${faceValue.toFixed(2)}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Coupon Rate:</span>
@@ -218,7 +218,7 @@ function displayRecommendedBonds(bonds) {
                 </div>
                 <div class="stock-details">
                     <div class="price-info">
-                        <div class="current-price">¥${price.toFixed(2)}</div>
+                        <div class="current-price">$${price.toFixed(2)}</div>
                         <div class="price-change ${changeClass}">${changeSign}${changePercent.toFixed(2)}%</div>
                     </div>
                     <div class="stock-stats">
@@ -358,7 +358,7 @@ function updateBondTotalAmount() {
     if (quantityInput && totalAmountElement) {
         const quantity = parseInt(quantityInput.value) || 1;
         const totalAmount = currentBondData.price * quantity;
-        totalAmountElement.textContent = `¥${totalAmount.toFixed(2)}`;
+        totalAmountElement.textContent = `$${totalAmount.toFixed(2)}`;
     }
 }
 
@@ -393,7 +393,7 @@ async function confirmBuyBond() {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            alert(`Bond purchase successful!\nBond: ${currentBondData.name}\nQuantity: ${quantity} units\nTotal Amount: ¥${result.totalCost}`);
+            alert(`Bond purchase successful!\nBond: ${currentBondData.name}\nQuantity: ${quantity} units\nTotal Amount: $${result.totalCost}`);
             closeBuyBondModal();
             
             // Ask whether to redirect to portfolio page

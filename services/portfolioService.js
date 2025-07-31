@@ -99,7 +99,7 @@ async function buyStock(userId, symbol, name, price, quantity) {
     const currentCash = parseFloat(users[0].cash_balance);
     
     if (currentCash < totalCost) {
-      throw new Error(`Insufficient cash balance, current balance: ¥${currentCash.toFixed(2)}, required: ¥${totalCost.toFixed(2)}`);
+      throw new Error(`Insufficient cash balance, current balance: $${currentCash.toFixed(2)}, required: $${totalCost.toFixed(2)}`);
     }
     
     // Find or create stock record
@@ -193,7 +193,7 @@ async function buyBond(userId, symbol, name, price, quantity, faceValue = 1000, 
     const currentCash = parseFloat(users[0].cash_balance);
     
     if (currentCash < totalCost) {
-      throw new Error(`Insufficient cash balance, current balance: ¥${currentCash.toFixed(2)}, required: ¥${totalCost.toFixed(2)}`);
+      throw new Error(`Insufficient cash balance, current balance: $${currentCash.toFixed(2)}, required: $${totalCost.toFixed(2)}`);
     }
     
     // Find or create bond record
