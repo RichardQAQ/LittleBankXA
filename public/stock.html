@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>股票市场 - 投资组合管理系统</title>
+    <title>Stock Market - Portfolio Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/stock-market.css">
     <link rel="stylesheet" href="css/stock.css">
@@ -49,36 +49,36 @@
 </head>
 <body>
     <header>
-        <h1>投资组合管理系统</h1>
+        <h1>Portfolio Management System</h1>
         <nav>
             <ul>
-                <li><a href="index.html">首页</a></li>
-                <li><a href="portfolio.html">投资组合</a></li>
-                <li><a href="stock.html" class="active">股票市场</a></li>
-                <li><a href="bond.html">债券市场</a></li>
-                <li><a href="add_asset.html">添加资产</a></li>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="portfolio.html">Portfolio</a></li>
+                <li><a href="stock.html" class="active">Stock Market</a></li>
+                <li><a href="bond.html">Bond Market</a></li>
+                <li><a href="add_asset.html">Add Asset</a></li>
             </ul>
         </nav>
     </header>
 
     <main>
         <section class="stock-market">
-            <h2>股票市场</h2>
+            <h2>Stock Market</h2>
             
             <div class="search-bar">
-                <input type="text" id="stock-symbol" placeholder="输入股票代码 (例如: AAPL)" autocomplete="off">
-                <button id="search-stock">查询</button>
-                <button id="update-price">更新价格</button>
+                <input type="text" id="stock-symbol" placeholder="Enter stock symbol (e.g. AAPL)" autocomplete="off">
+                <button id="search-stock">Search</button>
+                <button id="update-price">Update Price</button>
                 <!-- NEW: Container for autocomplete results -->
                 <div id="autocomplete-results" class="autocomplete-items"></div>
             </div>
 
             <div class="stock-details" id="stock-details">
                 <div class="stock-details-header">
-                    <h3>股票详情</h3>
+                    <h3>Stock Details</h3>
                     
                 </div>
-                <div class="loading" id="loading">加载中...</div>
+                <div class="loading" id="loading">Loading...</div>
                 <div class="error" id="error"></div>
                 <div class="data" id="stock-data"></div>
                 <div id="historical-chart-container"></div>
@@ -86,19 +86,19 @@
 
             <div class="stock-list">
                 <div class="list-header">
-                    <h3>我的关注列表</h3>
-                    <button id="update-all-prices-btn" class="btn btn-secondary">更新全部价格</button>
+                    <h3>My Watchlist</h3>
+                    <button id="update-all-prices-btn" class="btn btn-secondary">Update All Prices</button>
                 </div>
                 <table id="stock-table">
                     <thead>
                         <tr>
-                          <th>代码</th>
-                          <th>名称</th>
-                          <th>当前价格</th>
-                          <th>涨跌幅</th>
-                          <th>成交量</th>
-                          <th>市值</th>
-                          <th>操作</th>
+                          <th>Symbol</th>
+                          <th>Name</th>
+                          <th>Current Price</th>
+                          <th>Change</th>
+                          <th>Volume</th>
+                          <th>Market Cap</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                     
@@ -109,7 +109,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2024 投资组合管理系统</p>
+        <p>&copy; 2024 Portfolio Management System</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

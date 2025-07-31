@@ -1,40 +1,40 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>投资组合 - 投资组合管理系统</title>
+    <title>Portfolio - Portfolio Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/portfolio.css">
     <link rel="stylesheet" href="css/unified-style.css">
 </head>
 <body>
     <header>
-        <h1>投资组合管理系统</h1>
+        <h1>Portfolio Management System</h1>
         <nav>
             <ul>
-                <li><a href="index.html">首页</a></li>
-                <li><a href="portfolio.html" class="active">投资组合</a></li>
-                <li><a href="stock.html">股票市场</a></li>
-                <li><a href="bond.html">债券市场</a></li>
-                <li><a href="add_asset.html">添加资产</a></li>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="portfolio.html" class="active">Portfolio</a></li>
+                <li><a href="stock.html">Stock Market</a></li>
+                <li><a href="bond.html">Bond Market</a></li>
+                <li><a href="add_asset.html">Add Asset</a></li>
             </ul>
         </nav>
     </header>
     <main>
         <section id="portfolio-list">
-            <h2>我的投资组合</h2>
+            <h2>My Portfolio</h2>
             <div id="portfolio-summary">
                 <div class="summary-item">
-                    <h3>总资产</h3>
+                    <h3>Total Assets</h3>
                     <p id="total-assets">--</p>
                 </div>
                 <div class="summary-item">
-                    <h3>剩余现金</h3>
+                    <h3>Cash Balance</h3>
                     <p id="cash-balance">--</p>
                 </div>
                 <div class="summary-item">
-                    <button id="recharge-btn">充值</button>
+                    <button id="recharge-btn">Recharge</button>
                 </div>
             </div>
             <div id="portfolio-message"></div>
@@ -42,27 +42,27 @@
                 <table id="assets-table">
                     <thead>
                         <tr>
-                            <th>资产名称</th>
-                            <th>类型</th>
-                            <th>代码</th>
-                            <th>数量</th>
-                            <th>购买价格</th>
-                            <th>当前价格</th>
-                            <th>购买日期</th>
-                            <th>市值</th>
-                            <th>盈亏</th>
-                            <th>操作</th>
+                            <th>Asset Name</th>
+                            <th>Type</th>
+                            <th>Symbol</th>
+                            <th>Quantity</th>
+                            <th>Purchase Price</th>
+                            <th>Current Price</th>
+                            <th>Purchase Date</th>
+                            <th>Market Value</th>
+                            <th>Profit/Loss</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="assets-table-body">
-                        <tr><td colspan="10" class="loading">加载中...</td></tr>
+                        <tr><td colspan="10" class="loading">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
     </main>
     <footer>
-        <p>&copy; 2024 投资组合管理系统</p>
+        <p>&copy; 2024 Portfolio Management System</p>
     </footer>
     <script src="js/portfolio.js"></script>
 </body>

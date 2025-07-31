@@ -1,17 +1,17 @@
-// DOM元素
+// DOM elements
 let totalAssetsElement, cashBalanceElement, portfolioTableBody;
 
-// 页面加载完成后初始化
+// Initialize after page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('投资组合页面加载完成');
+    console.log('Portfolio page loaded');
     
-    // 获取DOM元素
+    // Get DOM elements
     totalAssetsElement = document.getElementById('total-assets');
     cashBalanceElement = document.getElementById('cash-balance');
     portfolioTableBody = document.getElementById('assets-table-body');
     
     if (!totalAssetsElement || !cashBalanceElement || !portfolioTableBody) {
-        console.error('找不到必要的DOM元素', {
+        console.error('Required DOM elements not found', {
             totalAssetsElement: !!totalAssetsElement,
             cashBalanceElement: !!cashBalanceElement,
             portfolioTableBody: !!portfolioTableBody
@@ -19,77 +19,77 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // 加载投资组合数据
+    // Load portfolio data
     loadPortfolioData();
     
-    // 绑定充值按钮事件
+    // Bind recharge button event
     const rechargeBtn = document.getElementById('recharge-btn');
     if (rechargeBtn) {
         rechargeBtn.addEventListener('click', showRechargeModal);
     }
 });
 
-// 加载投资组合数据
+// Load portfolio data
 function loadPortfolioData() {
-    console.log('开始加载投资组合数据');
+    console.log('Starting to load portfolio data');
     
     fetch('/api/portfolio')
         .then(response => {
-            console.log('投资组合响应状态:', response.status);
+            console.log('Portfolio response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('投资组合数据:', data);
+            console.log('Portfolio data:', data);
             if (data.error) {
-                console.error('获取投资组合失败:', data.error);
-                showError('获取投资组合失败');
+                console.error('Failed to get portfolio:', data.error);
+                showError('Failed to get portfolio');
             } else {
                 displayPortfolioData(data);
             }
         })
         .catch(error => {
-            console.error('获取投资组合时发生错误:', error);
-            showError('加载失败，请刷新页面重试');
+            console.error('Error occurred while getting portfolio:', error);
+            showError('Loading failed, please refresh the page');
         });
 }
 
-// 显示投资组合数据
+// Display portfolio data
 function displayPortfolioData(data) {
-    console.log('显示投资组合数据:', data);
+    console.log('Displaying portfolio data:', data);
     
-    // 显示用户资产信息
+    // Display user asset information
     if (data.user) {
         const totalAssets = parseFloat(data.user.total_assets) || 0;
         const cashBalance = parseFloat(data.user.cash_balance) || 0;
         
-        totalAssetsElement.textContent = `¥${totalAssets.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        cashBalanceElement.textContent = `¥${cashBalance.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        totalAssetsElement.textContent = `¥${totalAssets.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        cashBalanceElement.textContent = `¥${cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
-        console.log('用户资产信息已更新:', { totalAssets, cashBalance });
+        console.log('User asset information updated:', { totalAssets, cashBalance });
     } else {
-        console.warn('没有找到用户数据');
+        console.warn('User data not found');
         totalAssetsElement.textContent = '¥0.00';
         cashBalanceElement.textContent = '¥0.00';
     }
     
-    // 显示资产列表
+    // Display asset list
     if (data.assets && Array.isArray(data.assets)) {
         displayAssetsList(data.assets);
     } else {
-        console.warn('没有找到资产数据');
-        portfolioTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">暂无资产</td></tr>';
+        console.warn('Asset data not found');
+        portfolioTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No assets</td></tr>';
     }
 }
 
-// 显示资产列表
+// Display asset list
 function displayAssetsList(assets) {
-    console.log('显示资产列表:', assets.length, '项');
+    console.log('Displaying asset list:', assets.length, 'items');
     
     if (assets.length === 0) {
-        portfolioTableBody.innerHTML = '<tr><td colspan="10" style="text-align: center;">暂无资产</td></tr>';
+        portfolioTableBody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No assets</td></tr>';
         return;
     }
     
@@ -101,11 +101,11 @@ function displayAssetsList(assets) {
     });
 }
 
-// 创建资产行
+// Create asset row
 function createAssetRow(asset) {
     const row = document.createElement('tr');
     
-    // 计算收益
+    // Calculate profit
     const quantity = parseFloat(asset.quantity) || 0;
     const purchasePrice = parseFloat(asset.purchase_price) || 0;
     const currentPrice = parseFloat(asset.current_price) || 0;
@@ -114,14 +114,14 @@ function createAssetRow(asset) {
     const profit = totalValue - totalCost;
     const profitRate = totalCost > 0 ? (profit / totalCost * 100) : 0;
     
-    // 格式化日期
-    const purchaseDate = new Date(asset.purchase_date).toLocaleDateString('zh-CN');
+    // Format date
+    const purchaseDate = new Date(asset.purchase_date).toLocaleDateString('en-US');
     
-    // 资产类型显示
-    const assetTypeText = asset.type === 'stock' ? '股票' : asset.type === 'bond' ? '债券' : '现金';
+    // Asset type display
+    const assetTypeText = asset.type === 'stock' ? 'Stock' : asset.type === 'bond' ? 'Bond' : 'Cash';
     
     row.innerHTML = `
-        <td>${asset.name || '未知'}</td>
+        <td>${asset.name || 'Unknown'}</td>
         <td>${assetTypeText}</td>
         <td>${asset.symbol || ''}</td>
         <td>${quantity.toFixed(4)}</td>
@@ -133,17 +133,17 @@ function createAssetRow(asset) {
             ¥${profit.toFixed(2)} (${profitRate.toFixed(2)}%)
         </td>
         <td>
-            <button class="action-btn sell-btn" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">卖出</button>
-            <button class="action-btn delete-btn" onclick="deleteAsset(${asset.id}, '${asset.name}')">删除</button>
+            <button class="action-btn sell-btn" onclick="sellAsset(${asset.id}, '${asset.name}', ${quantity})">Sell</button>
+            <button class="action-btn delete-btn" onclick="deleteAsset(${asset.id}, '${asset.name}')">Delete</button>
         </td>
     `;
     
     return row;
 }
 
-// 更新价格
+// Update price
 function updatePrice(type, symbol) {
-    console.log('更新价格:', type, symbol);
+    console.log('Updating price:', type, symbol);
     
     const endpoint = type === 'stock' ? `/api/stocks/${symbol}/update` : `/api/bonds/${symbol}/update`;
     
@@ -151,49 +151,49 @@ function updatePrice(type, symbol) {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                alert('更新价格失败: ' + data.error);
+                alert('Failed to update price: ' + data.error);
             } else {
-                alert('价格更新成功');
-                loadPortfolioData(); // 重新加载数据
+                alert('Price updated successfully');
+                loadPortfolioData(); // Reload data
             }
         })
         .catch(error => {
-            console.error('更新价格失败:', error);
-            alert('更新价格失败');
+            console.error('Failed to update price:', error);
+            alert('Failed to update price');
         });
 }
 
-// 卖出资产
+// Sell asset
 function sellAsset(assetId, assetName, currentQuantity) {
-    // 显示卖出模态框
+    // Show sell modal
     showSellModal(assetId, assetName, currentQuantity);
 }
 
-// 显示卖出模态框
+// Show sell modal
 function showSellModal(assetId, assetName, currentQuantity) {
     const modal = document.createElement('div');
     modal.className = 'sell-modal';
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
-                <h3>卖出资产</h3>
+                <h3>Sell Asset</h3>
                 <span class="close-btn" onclick="closeSellModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <p><strong>资产名称:</strong> ${assetName}</p>
-                <p><strong>持有数量:</strong> ${parseFloat(currentQuantity).toFixed(4)}</p>
-                <label for="sell-quantity">卖出数量:</label>
-                <input type="number" id="sell-quantity" min="0.0001" max="${currentQuantity}" step="0.0001" placeholder="请输入卖出数量">
+                <p><strong>Asset Name:</strong> ${assetName}</p>
+                <p><strong>Quantity Held:</strong> ${parseFloat(currentQuantity).toFixed(4)}</p>
+                <label for="sell-quantity">Sell Quantity:</label>
+                <input type="number" id="sell-quantity" min="0.0001" max="${currentQuantity}" step="0.0001" placeholder="Enter quantity to sell">
                 <div class="quick-sell">
                     <button onclick="setSellQuantity(${currentQuantity * 0.25})">25%</button>
                     <button onclick="setSellQuantity(${currentQuantity * 0.5})">50%</button>
                     <button onclick="setSellQuantity(${currentQuantity * 0.75})">75%</button>
-                    <button onclick="setSellQuantity(${currentQuantity})">全部</button>
+                    <button onclick="setSellQuantity(${currentQuantity})">All</button>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeSellModal()">取消</button>
-                <button class="btn btn-danger" onclick="processSell(${assetId})">确认卖出</button>
+                <button class="btn btn-secondary" onclick="closeSellModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="processSell(${assetId})">Confirm Sell</button>
             </div>
         </div>
     `;
@@ -205,7 +205,7 @@ function showSellModal(assetId, assetName, currentQuantity) {
     }, 100);
 }
 
-// 关闭卖出模态框
+// Close sell modal
 function closeSellModal() {
     const modal = document.querySelector('.sell-modal');
     if (modal) {
@@ -213,32 +213,32 @@ function closeSellModal() {
     }
 }
 
-// 设置卖出数量
+// Set sell quantity
 function setSellQuantity(quantity) {
     document.getElementById('sell-quantity').value = parseFloat(quantity).toFixed(4);
 }
 
-// 处理卖出
+// Process sell
 function processSell(assetId) {
     const quantityInput = document.getElementById('sell-quantity');
     const quantity = parseFloat(quantityInput.value);
     
     if (!quantity || quantity <= 0) {
-        alert('请输入有效的卖出数量');
+        alert('Please enter a valid sell quantity');
         return;
     }
     
     const maxQuantity = parseFloat(quantityInput.max);
     if (quantity > maxQuantity) {
-        alert('卖出数量不能超过持有数量');
+        alert('Sell quantity cannot exceed held quantity');
         return;
     }
     
-    if (!confirm(`确定要卖出 ${quantity.toFixed(4)} 单位的资产吗？`)) {
+    if (!confirm(`Are you sure you want to sell ${quantity.toFixed(4)} units of this asset?`)) {
         return;
     }
     
-    console.log('开始卖出资产:', { assetId, quantity });
+    console.log('Starting to sell asset:', { assetId, quantity });
     
     fetch('/api/portfolio/sell', {
         method: 'POST',
@@ -251,46 +251,46 @@ function processSell(assetId) {
         })
     })
     .then(response => {
-        console.log('卖出响应状态:', response.status);
+        console.log('Sell response status:', response.status);
         return response.json();
     })
     .then(data => {
         if (data.error) {
-            console.error('卖出失败:', data.error);
-            alert('卖出失败: ' + data.error);
+            console.error('Sell failed:', data.error);
+            alert('Sell failed: ' + data.error);
         } else {
-            console.log('卖出成功:', data);
-            alert(`卖出成功！获得现金 ¥${data.amount.toFixed(2)}`);
+            console.log('Sell successful:', data);
+            alert(`Sell successful! Received ¥${data.amount.toFixed(2)}`);
             closeSellModal();
-            loadPortfolioData(); // 重新加载数据
+            loadPortfolioData(); // Reload data
         }
     })
     .catch(error => {
-        console.error('卖出时发生错误:', error);
-        alert('卖出失败，请稍后重试');
+        console.error('Error occurred during sell:', error);
+        alert('Sell failed, please try again later');
     });
 }
 
-// 显示错误信息
+// Show error message
 function showError(message) {
-    totalAssetsElement.textContent = '错误';
-    cashBalanceElement.textContent = '错误';
+    totalAssetsElement.textContent = 'Error';
+    cashBalanceElement.textContent = 'Error';
     portfolioTableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: red;">${message}</td></tr>`;
 }
 
-// 显示充值模态框
+// Show recharge modal
 function showRechargeModal() {
     const modal = document.createElement('div');
     modal.className = 'recharge-modal';
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
-                <h3>充值现金</h3>
+                <h3>Deposit Cash</h3>
                 <span class="close-btn" onclick="closeRechargeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <label for="recharge-amount">充值金额 (¥):</label>
-                <input type="number" id="recharge-amount" min="0.01" step="0.01" placeholder="请输入充值金额">
+                <label for="recharge-amount">Deposit Amount (¥):</label>
+                <input type="number" id="recharge-amount" min="0.01" step="0.01" placeholder="Enter deposit amount">
                 <div class="quick-amounts">
                     <button onclick="setRechargeAmount(1000)">¥1,000</button>
                     <button onclick="setRechargeAmount(5000)">¥5,000</button>
@@ -299,8 +299,8 @@ function showRechargeModal() {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeRechargeModal()">取消</button>
-                <button class="btn btn-primary" onclick="processRecharge()">确认充值</button>
+                <button class="btn btn-secondary" onclick="closeRechargeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="processRecharge()">Confirm Deposit</button>
             </div>
         </div>
     `;
@@ -312,7 +312,7 @@ function showRechargeModal() {
     }, 100);
 }
 
-// 关闭充值模态框
+// Close recharge modal
 function closeRechargeModal() {
     const modal = document.querySelector('.recharge-modal');
     if (modal) {
@@ -320,36 +320,36 @@ function closeRechargeModal() {
     }
 }
 
-// 设置充值金额
+// Set recharge amount
 function setRechargeAmount(amount) {
     document.getElementById('recharge-amount').value = amount;
 }
 
-// 处理充值
+// Process recharge
 function processRecharge() {
     const amountInput = document.getElementById('recharge-amount');
     const amount = parseFloat(amountInput.value);
     
     if (!amount || amount <= 0) {
-        alert('请输入有效的充值金额');
+        alert('Please enter a valid deposit amount');
         return;
     }
     
     if (amount > 1000000) {
-        alert('单次充值金额不能超过100万元');
+        alert('Single deposit amount cannot exceed 1 million yuan');
         return;
     }
     
-    if (!confirm(`确认充值 ¥${amount.toFixed(2)} 吗？`)) {
+    if (!confirm(`Confirm deposit of ¥${amount.toFixed(2)}?`)) {
         return;
     }
     
-    console.log('开始充值:', amount);
+    console.log('Starting deposit:', amount);
     
-    // 显示加载状态
+    // Show loading status
     const confirmBtn = document.querySelector('.modal-footer .btn-primary');
     const originalText = confirmBtn.textContent;
-    confirmBtn.textContent = '充值中...';
+    confirmBtn.textContent = 'Processing...';
     confirmBtn.disabled = true;
     
     fetch('/api/portfolio/recharge', {
@@ -360,35 +360,35 @@ function processRecharge() {
         body: JSON.stringify({ amount: amount })
     })
     .then(response => {
-        console.log('充值响应状态:', response.status);
+        console.log('Deposit response status:', response.status);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log('充值响应数据:', data);
+        console.log('Deposit response data:', data);
         if (data.error) {
-            console.error('充值失败:', data.error);
-            alert('充值失败: ' + data.error);
+            console.error('Deposit failed:', data.error);
+            alert('Deposit failed: ' + data.error);
         } else if (data.success) {
-            console.log('充值成功:', data);
-            alert(`充值成功！已充值 ¥${parseFloat(data.amount).toFixed(2)}`);
+            console.log('Deposit successful:', data);
+            alert(`Deposit successful! Deposited ¥${parseFloat(data.amount).toFixed(2)}`);
             closeRechargeModal();
-            // 延迟重新加载数据，确保服务器端更新完成
+            // Delay reloading data to ensure server-side update is complete
             setTimeout(() => {
                 loadPortfolioData();
             }, 500);
         } else {
-            alert('充值失败：服务器响应异常');
+            alert('Deposit failed: Server response abnormal');
         }
     })
     .catch(error => {
-        console.error('充值时发生错误:', error);
-        alert('充值失败，请检查网络连接后重试');
+        console.error('Error occurred during deposit:', error);
+        alert('Deposit failed, please check your network connection and try again');
     })
     .finally(() => {
-        // 恢复按钮状态
+        // Restore button status
         if (confirmBtn) {
             confirmBtn.textContent = originalText;
             confirmBtn.disabled = false;
@@ -396,7 +396,7 @@ function processRecharge() {
     });
 }
 
-// 添加CSS样式
+// Add CSS styles
 const style = document.createElement('style');
 style.textContent = `
     .profit-positive {
@@ -439,7 +439,7 @@ style.textContent = `
         opacity: 0.8;
     }
     
-    /* 操作按钮样式 */
+    /* Action button styles */
     .action-btn {
         padding: 8px 16px;
         border-radius: 4px;
@@ -453,11 +453,11 @@ style.textContent = `
     }
     
     .sell-btn {
-        background-color: #007bff; /* 蓝色 */
+        background-color: #007bff; /* Blue */
     }
     
     .delete-btn {
-        background-color: #dc3545; /* 红色 */
+        background-color: #dc3545; /* Red */
     }
     
     .action-btn:hover {
@@ -466,7 +466,7 @@ style.textContent = `
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     
-    /* 充值模态框样式 */
+    /* Recharge modal styles */
     .recharge-modal, .sell-modal {
         position: fixed;
         top: 0;
@@ -590,34 +590,34 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 删除资产
+// Delete asset
 function deleteAsset(assetId, assetName) {
-    if (!confirm(`确定要删除 ${assetName} 这项资产吗？此操作不可恢复。`)) {
+    if (!confirm(`Are you sure you want to delete the asset ${assetName}? This action cannot be undone.`)) {
         return;
     }
     
-    console.log('开始删除资产:', { assetId, assetName });
+    console.log('Starting to delete asset:', { assetId, assetName });
     
     fetch(`/api/portfolio/${assetId}`, {
         method: 'DELETE'
     })
     .then(response => {
-        console.log('删除响应状态:', response.status);
+        console.log('Delete response status:', response.status);
         return response.json();
     })
     .then(data => {
         if (data.error) {
-            console.error('删除失败:', data.error);
-            alert('删除失败: ' + data.error);
+            console.error('Delete failed:', data.error);
+            alert('Delete failed: ' + data.error);
         } else {
-            console.log('删除成功:', data);
-            alert('资产删除成功');
-            loadPortfolioData(); // 重新加载数据
+            console.log('Delete successful:', data);
+            alert('Asset deleted successfully');
+            loadPortfolioData(); // Reload data
         }
     })
     .catch(error => {
-        console.error('删除时发生错误:', error);
-        alert('删除失败，请稍后重试');
+        console.error('Error occurred during delete:', error);
+        alert('Delete failed, please try again later');
     });
 }
 

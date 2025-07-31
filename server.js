@@ -4,40 +4,40 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 const path = require('path');
 const { getStockData, updateStockPrice, getBondData } = require('./alphaVantageService');
-const priceService = require('./services/priceService'); // 价格服务模块
-const portfolioService = require('./services/portfolioService'); // 投资组合服务模块
+const priceService = require('./services/priceService'); // Price service module
+const portfolioService = require('./services/portfolioService'); // Portfolio service module
 
-// 中间件
+// Middleware
 app.use(express.json());
-// 静态文件服务
+// Static file service
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API路由
+// API routes
 const apiRouter = express.Router();
 
-// 测试API
+// Test API
 apiRouter.get('/test', (req, res) => {
   res.json({ message: 'API is working!' });
 });
 
-// 获取用户信息
+// Get user information
 apiRouter.get('/user', async (req, res) => {
   try {
     const userId = 1;
     const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
     
     if (users.length === 0) {
-      return res.status(404).json({ error: '未找到用户' });
+      return res.status(404).json({ error: 'User not found' });
     }
     
     res.json(users[0]);
   } catch (error) {
-    console.error('获取用户信息错误:', error);
+    console.error('Error getting user information:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 获取投资组合概览
+// Get portfolio overview
 apiRouter.get('/portfolio/overview', async (req, res) => {
   try {
     const userId = 1;
@@ -68,7 +68,7 @@ apiRouter.get('/portfolio/overview', async (req, res) => {
     const bondValue = parseFloat(user.bond_value) || 0.00;
     const cashBalance = parseFloat(user.cash_balance) || 50000.00;
     
-    console.log('返回投资组合概览:', {
+    console.log('Returning portfolio overview:', {
       totalValue, totalReturn, stockValue, bondValue, cashBalance
     });
     
@@ -80,31 +80,31 @@ apiRouter.get('/portfolio/overview', async (req, res) => {
       cashBalance: cashBalance
     });
   } catch (error) {
-    console.error('获取投资组合概览错误:', error);
+    console.error('Error getting portfolio overview:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 获取投资组合
+// Get portfolio
 apiRouter.get('/portfolio', async (req, res) => {
   try {
     console.log('调用 /api/portfolio');
     const userId = 1;
     const [userInfo] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
     
-    // 检查portfolio表是否有数据
+    // Check if portfolio table has data
     const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = ? AND status = 1', [userId]);
     
     if (portfolioCount[0].count === 0) {
-      // 如果没有资产数据，创建一些示例数据
-      console.log('没有资产数据，创建示例数据');
+      // If no asset data, create sample data
+      console.log('No asset data, creating sample data');
       
-      // 获取一些股票和债券
+      // Get some stocks and bonds
       const [stocks] = await pool.query('SELECT * FROM stocks LIMIT 3');
       const [bonds] = await pool.query('SELECT * FROM bonds LIMIT 2');
       
       if (stocks.length > 0) {
-        // 添加示例股票资产
+        // Add sample stock assets
         for (const stock of stocks) {
           await pool.query(
             'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
@@ -114,7 +114,7 @@ apiRouter.get('/portfolio', async (req, res) => {
       }
       
       if (bonds.length > 0) {
-        // 添加示例债券资产
+        // Add sample bond assets
         for (const bond of bonds) {
           await pool.query(
             'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
@@ -123,14 +123,14 @@ apiRouter.get('/portfolio', async (req, res) => {
         }
       }
       
-      // 添加示例现金资产
+      // Add sample cash asset
       await pool.query(
         'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
         [userId, 'cash', 0, '现金', 10000, 1]
       );
     }
     
-    // 获取资产数据
+    // Get asset data
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
@@ -156,18 +156,18 @@ apiRouter.get('/portfolio', async (req, res) => {
         ORDER BY purchase_date DESC`, [userId, userId, userId]
     );
     
-    console.log('投资组合查询结果:', portfolioItems.length);
+    console.log('Portfolio query results:', portfolioItems.length);
     res.json({
       user: userInfo[0],
       assets: portfolioItems
     });
   } catch (error) {
-    console.error('获取投资组合错误:', error);
+    console.error('Error getting portfolio:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 获取股票列表
+// Get stock list
 apiRouter.get('/stocks', async (req, res) => {
   try {
     // FIX: First, trigger a background update for all stocks in the watchlist.
@@ -198,8 +198,8 @@ apiRouter.get('/stocks', async (req, res) => {
     
     res.json(formattedStocks);
   } catch (error) {
-    console.error('获取股票列表失败:', error);
-    res.status(500).json({ error: '获取股票列表失败' });
+    console.error('Failed to get stock list:', error);
+    res.status(500).json({ error: 'Failed to get stock list' });
   }
 });
 
@@ -240,25 +240,25 @@ apiRouter.get('/stocks/:symbol/price-on-date', async (req, res) => {
   }
 });
 
-// 获取单个股票数据
+// Get single stock data
 apiRouter.get('/stocks/single/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
     
-    // 首先尝试从数据库获取股票数据
+    // First try to get stock data from database
     const [stocks] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
     
     if (stocks.length === 0) {
-      // 如果数据库中没有该股票，尝试从Yahoo Finance API获取
-      console.log(`数据库中没有找到股票 ${symbol}，尝试从Yahoo Finance API获取`);
+      // If stock not in database, try to get from Yahoo Finance API
+      console.log(`Stock ${symbol} not found in database, trying Yahoo Finance API`);
       try {
         const stockDataList = await priceService.fetchRealTimePrice([symbol]);
         if (stockDataList && stockDataList.length > 0) {
           const stockData = stockDataList[0];
-          // 将获取到的数据保存到数据库
+          // Save retrieved data to database
           await priceService.updateStocksInDatabase([stockData]);
           
-          // 返回API获取的数据
+          // Return API data
           return res.json({
             id: 0, // 临时ID
             symbol: stockData.symbol,
@@ -272,25 +272,25 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
           });
         }
       } catch (apiError) {
-        console.error(`从Yahoo Finance API获取股票 ${symbol} 数据失败:`, apiError);
+        console.error(`Failed to get stock ${symbol} data from Yahoo Finance API:`, apiError);
       }
       
-      return res.status(404).json({ error: '股票不存在' });
+      return res.status(404).json({ error: 'Stock does not exist' });
     }
     
     const stock = stocks[0];
     
-    // 尝试从Yahoo Finance API获取最新数据
+    // Try to get latest data from Yahoo Finance API
     try {
       const stockDataList = await priceService.fetchRealTimePrice([symbol]);
       if (stockDataList && stockDataList.length > 0) {
         const stockData = stockDataList[0];
-        // 更新数据库中的股票数据
+        // Update stock data in database
         await priceService.updateStocksInDatabase([stockData]);
         
-        console.log(`从Yahoo Finance API获取到股票 ${symbol} 的最新数据`);
+        console.log(`Got latest data for stock ${symbol} from Yahoo Finance API`);
         
-        // 返回API获取的最新数据
+        // Return latest data from API
         return res.json({
           id: stock.id,
           symbol: stockData.symbol,
@@ -304,12 +304,12 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
         });
       }
     } catch (apiError) {
-      console.error(`从Yahoo Finance API获取股票 ${symbol} 数据失败:`, apiError);
-      // 如果API获取失败，使用数据库中的数据
+      console.error(`Failed to get stock ${symbol} data from Yahoo Finance API:`, apiError);
+      // If API fails, use data from database
     }
     
-    // 如果API获取失败或没有返回数据，使用数据库中的数据
-    console.log(`使用数据库中的股票 ${symbol} 数据`);
+    // If API fails or returns no data, use data from database
+    console.log(`Using stock ${symbol} data from database`);
     
     // FIX: Use the change_percent from the database instead of generating a random one.
     const changePercent = parseFloat(stock.change_percent) || 0;
@@ -329,8 +329,8 @@ apiRouter.get('/stocks/single/:symbol', async (req, res) => {
       updated_at: stock.last_updated || new Date()
     });
   } catch (error) {
-    console.error('获取单个股票数据失败:', error);
-    res.status(500).json({ error: '获取股票数据失败' });
+    console.error('Failed to get single stock data:', error);
+    res.status(500).json({ error: 'Failed to get stock data' });
   }
 });
 
@@ -339,13 +339,13 @@ apiRouter.post('/stocks/refresh', async (req, res) => {
     const result = priceService.updateAllStockPrices();
     res.json(result);
   } catch (error) {
-    console.error('刷新股票价格失败:', error);
-    res.status(500).json({ error: '刷新股票价格失败' });
+    console.error('Failed to refresh stock prices:', error);
+    res.status(500).json({ error: 'Failed to refresh stock prices' });
   }
 });
 
 
-// 购买股票
+// Buy stock
 apiRouter.post('/stocks/buy', async (req, res) => {
   try {
     const { symbol, name, price, quantity } = req.body;
@@ -354,8 +354,8 @@ apiRouter.post('/stocks/buy', async (req, res) => {
     const result = await portfolioService.buyStock(userId, symbol, name, price, quantity);
     res.json(result);
   } catch (error) {
-    console.error('购买股票失败:', error);
-    res.status(500).json({ error: '购买失败: ' + error.message });
+    console.error('Failed to buy stock:', error);
+    res.status(500).json({ error: 'Purchase failed: ' + error.message });
   }
 });
 
@@ -370,12 +370,12 @@ apiRouter.post('/stocks/update-all', async (req, res) => {
       throw new Error(result.error || 'Batch update failed.');
     }
   } catch (error) {
-    console.error('批量更新股票价格失败:', error);
-    res.status(500).json({ error: '批量更新失败: ' + error.message });
+    console.error('Failed to batch update stock prices:', error);
+    res.status(500).json({ error: 'Batch update failed: ' + error.message });
   }
 });
 
-// 获取债券列表
+// Get bond list
 apiRouter.get('/bonds', async (req, res) => {
   try {
     const [bonds] = await pool.query('SELECT * FROM bonds ORDER BY symbol');
@@ -401,12 +401,12 @@ apiRouter.get('/bonds', async (req, res) => {
     
     res.json(formattedBonds);
   } catch (error) {
-    console.error('获取债券列表失败:', error);
-    res.status(500).json({ error: '获取债券列表失败' });
+    console.error('Failed to get bond list:', error);
+    res.status(500).json({ error: 'Failed to get bond list' });
   }
 });
 
-// 获取单个债券数据
+// Get single bond data
 apiRouter.get('/bonds/single/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
@@ -414,7 +414,7 @@ apiRouter.get('/bonds/single/:symbol', async (req, res) => {
     const [bonds] = await pool.query('SELECT * FROM bonds WHERE symbol = ?', [symbol]);
     
     if (bonds.length === 0) {
-      return res.status(404).json({ error: '债券不存在' });
+      return res.status(404).json({ error: 'Bond does not exist' });
     }
     
     const bond = bonds[0];
@@ -434,12 +434,12 @@ apiRouter.get('/bonds/single/:symbol', async (req, res) => {
       change_percent: changePercent
     });
   } catch (error) {
-    console.error('获取单个债券数据失败:', error);
-    res.status(500).json({ error: '获取债券数据失败' });
+    console.error('Failed to get single bond data:', error);
+    res.status(500).json({ error: 'Failed to get bond data' });
   }
 });
 
-// 购买债券
+// Buy bond
 apiRouter.post('/bonds/buy', async (req, res) => {
   try {
     const { symbol, name, price, quantity, faceValue, couponRate, maturityDate } = req.body;
@@ -448,12 +448,12 @@ apiRouter.post('/bonds/buy', async (req, res) => {
     const result = await portfolioService.buyBond(userId, symbol, name, price, quantity, faceValue, couponRate, maturityDate);
     res.json(result);
   } catch (error) {
-    console.error('购买债券失败:', error);
-    res.status(500).json({ error: '购买失败: ' + error.message });
+    console.error('Failed to buy bond:', error);
+    res.status(500).json({ error: 'Purchase failed: ' + error.message });
   }
 });
 
-// 卖出资产
+// Sell asset
 apiRouter.post('/portfolio/sell', async (req, res) => {
   try {
     const { assetId, quantity } = req.body;
@@ -462,12 +462,12 @@ apiRouter.post('/portfolio/sell', async (req, res) => {
     const result = await portfolioService.sellAsset(userId, assetId, quantity);
     res.json(result);
   } catch (error) {
-    console.error('卖出资产失败:', error);
-    res.status(500).json({ error: '卖出失败: ' + error.message });
+    console.error('Failed to sell asset:', error);
+    res.status(500).json({ error: 'Sale failed: ' + error.message });
   }
 });
 
-// 充值现金
+// Deposit cash
 apiRouter.post('/portfolio/recharge', async (req, res) => {
   try {
     const { amount } = req.body;
@@ -476,29 +476,29 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
     const result = await portfolioService.rechargeCash(userId, amount);
     res.json(result);
   } catch (error) {
-    console.error('充值失败:', error);
-    res.status(500).json({ error: '充值失败: ' + error.message });
+    console.error('Deposit failed:', error);
+    res.status(500).json({ error: 'Deposit failed: ' + error.message });
   }
 });
 
-// 获取最近资产
+// Get recent assets
 apiRouter.get('/portfolio/recent', async (req, res) => {
   try {
     const userId = 1;
     
-    // 检查portfolio表是否有数据
+    // Check if portfolio table has data
     const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio WHERE user_id = ? AND status = 1', [userId]);
     
     if (portfolioCount[0].count === 0) {
-      // 如果没有资产数据，创建一些示例数据
-      console.log('没有资产数据，创建示例数据');
+      // If no asset data, create sample data
+      console.log('No asset data, creating sample data');
       
-      // 获取一些股票和债券
+      // Get some stocks and bonds
       const [stocks] = await pool.query('SELECT * FROM stocks LIMIT 2');
       const [bonds] = await pool.query('SELECT * FROM bonds LIMIT 2');
       
       if (stocks.length > 0) {
-        // 添加示例股票资产
+        // Add sample stock assets
         for (const stock of stocks) {
           await pool.query(
             'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
@@ -508,7 +508,7 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
       }
       
       if (bonds.length > 0) {
-        // 添加示例债券资产
+        // Add sample bond assets
         for (const bond of bonds) {
           await pool.query(
             'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
@@ -517,14 +517,14 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
         }
       }
       
-      // 添加示例现金资产
+      // Add sample cash asset
       await pool.query(
         'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, CURDATE(), 1)',
         [userId, 'cash', 0, '现金', 10000, 1]
       );
     }
     
-    // 获取资产数据
+    // Get asset data
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
@@ -551,60 +551,60 @@ apiRouter.get('/portfolio/recent', async (req, res) => {
         LIMIT 5`, [userId, userId, userId]
     );
     
-    console.log('返回最近资产:', portfolioItems.length);
+    console.log('Returning recent assets:', portfolioItems.length);
     res.json({
       assets: portfolioItems
     });
   } catch (error) {
-    console.error('获取最近资产错误:', error);
+    console.error('Error getting recent assets:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 获取投资组合表现数据
+// Get portfolio performance data
 apiRouter.get('/portfolio/performance', async (req, res) => {
   try {
-    // 获取用户当前资产总值
+    // Get user's current total assets
     const [users] = await pool.query('SELECT total_assets FROM users WHERE id = 1');
     const currentValue = users.length > 0 ? parseFloat(users[0].total_assets) : 50000;
     
-    // 生成模拟的历史表现数据
+    // Generate simulated historical performance data
     const dates = [];
     const values = [];
     const baseValue = 50000;
-    const trend = (currentValue - baseValue) / 30; // 平均每天的变化趋势
+    const trend = (currentValue - baseValue) / 30; // Average daily trend
     
     for (let i = 30; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       dates.push(date.toLocaleDateString('zh-CN'));
       
-      // 模拟价值变化，基于当前资产和趋势
+      // Simulate value changes based on current assets and trend
       const dayTrend = trend * (30 - i);
       const randomChange = (Math.random() - 0.5) * 1000;
       const value = baseValue + dayTrend + randomChange;
       values.push(Math.max(value, 30000));
     }
     
-    // 确保最后一天的值与当前资产总值匹配
+    // Ensure the last day's value matches current total assets
     if (values.length > 0) {
       values[values.length - 1] = currentValue;
     }
     
-    console.log('返回投资组合表现数据');
+    console.log('Returning portfolio performance data');
     res.json({
       dates: dates,
       values: values
     });
   } catch (error) {
-    console.error('获取表现数据错误:', error);
+    console.error('Error getting performance data:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // 这个重复的端点已被删除
 
-// 获取债券列表
+// Get bond list
 apiRouter.get('/bonds', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM bonds');
@@ -614,14 +614,14 @@ apiRouter.get('/bonds', async (req, res) => {
   }
 });
 
-// 获取投资组合
+// Get portfolio
 apiRouter.get('/portfolio', async (req, res) => {
   try {
     console.log('调用 /api/portfolio');
 
     
-    // 获取所有资产，包括股票和债券的详细信息
-    console.log('执行SQL查询获取投资组合资产');
+    // Get all assets, including detailed stock and bond information
+    console.log('Executing SQL query to get portfolio assets');
     const [portfolioItems] = await pool.query(
       `SELECT * FROM (
         (SELECT p.id, p.asset_type, p.asset_id, p.quantity, p.purchase_price, p.purchase_date, 
@@ -639,17 +639,17 @@ apiRouter.get('/portfolio', async (req, res) => {
         ORDER BY purchase_date DESC`, []
     );
     
-    console.log('投资组合查询结果:', portfolioItems);
+    console.log('Portfolio query results:', portfolioItems);
     res.json({
       assets: portfolioItems
     });
   } catch (error) {
-    console.error('获取投资组合错误:', error);
+    console.error('Error getting portfolio:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 添加资产到投资组合
+// Add asset to portfolio
 apiRouter.post('/portfolio', async (req, res) => {
   try {
     const { assetType, symbol, quantity, purchasePrice, purchaseDate, faceValue, couponRate, maturityDate } = req.body;
@@ -703,7 +703,7 @@ apiRouter.post('/portfolio', async (req, res) => {
         assetId = result.insertId;
       }
     } else {
-      return res.status(400).json({ error: '无效的资产类型' });
+      return res.status(400).json({ error: 'Invalid asset type' });
     }
     
     // 将资产添加到投资组合
@@ -713,51 +713,51 @@ apiRouter.post('/portfolio', async (req, res) => {
       [userId, assetType, assetId, quantity, purchasePrice, purchaseDate]
       );
     
-    res.json({ success: true, message: '资产添加成功' });
+    res.json({ success: true, message: 'Asset added successfully' });
   }
   catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// 从投资组合中删除资产
+// Delete asset from portfolio
 apiRouter.delete('/portfolio/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 获取资产信息，用于日志记录
+    // Get asset information for logging
     const [assets] = await pool.query('SELECT * FROM portfolio WHERE id = ?', [id]);
     if (assets.length === 0) {
-      return res.status(404).json({ error: '资产不存在' });
+      return res.status(404).json({ error: 'Asset does not exist' });
     }
     
     const asset = assets[0];
-    console.log(`删除资产: ID=${id}, 类型=${asset.asset_type}, 数量=${asset.quantity}`);
+    console.log(`Deleting asset: ID=${id}, Type=${asset.asset_type}, Quantity=${asset.quantity}`);
     
-    // 执行删除操作
+    // Execute delete operation
     await pool.query('DELETE FROM portfolio WHERE id = ?', [id]);
     
-    // 更新用户资产总值
+    // Update user asset values
     await portfolioService.updateUserAssetValues(1);
     
-    res.json({ success: true, message: '资产删除成功' });
+    res.json({ success: true, message: 'Asset deleted successfully' });
   } catch (error) {
-    console.error('删除资产失败:', error);
+    console.error('Failed to delete asset:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 卖出资产
+// Sell asset
 apiRouter.post('/portfolio/sell', async (req, res) => {
   try {
     const { assetId, quantity } = req.body;
     
-    // 验证参数
+    // Validate parameters
     if (!assetId || !quantity || isNaN(quantity) || quantity <= 0) {
-      return res.status(400).json({ error: '无效的卖出参数' });
+      return res.status(400).json({ error: 'Invalid sell parameters' });
     }
     
-    // 获取资产信息
+    // Get asset information
     const [assets] = await pool.query(
       'SELECT p.*, s.current_price as stock_price, b.current_price as bond_price, '
       + 's.symbol as stock_symbol, b.symbol as bond_symbol, '
@@ -770,7 +770,7 @@ apiRouter.post('/portfolio/sell', async (req, res) => {
     );
     
     if (assets.length === 0) {
-      return res.status(404).json({ error: '未找到该资产' });
+      return res.status(404).json({ error: 'Asset not found' });
     }
     
     const asset = assets[0];
@@ -778,53 +778,53 @@ apiRouter.post('/portfolio/sell', async (req, res) => {
     const currentQuantity = parseFloat(asset.quantity);
     
     if (sellQuantity > currentQuantity) {
-      return res.status(400).json({ error: '卖出数量超过持有数量' });
+      return res.status(400).json({ error: 'Sell quantity exceeds held quantity' });
     }
     
-    // 获取当前价格
+    // Get current price
     let currentPrice;
     if (asset.asset_type === 'stock') {
       currentPrice = parseFloat(asset.stock_price);
     } else if (asset.asset_type === 'bond') {
       currentPrice = parseFloat(asset.bond_price);
     } else {
-      return res.status(400).json({ error: '不支持的资产类型' });
+      return res.status(400).json({ error: 'Unsupported asset type' });
     }
     
-    // 计算卖出金额
+    // Calculate sell amount
     const sellAmount = currentPrice * sellQuantity;
     
-    // 更新投资组合
+    // Update portfolio
     if (sellQuantity === currentQuantity) {
-      // 全部卖出，删除资产
+      // Sell all, delete asset
       await pool.query('DELETE FROM portfolio WHERE id = ?', [assetId]);
     } else {
-      // 部分卖出，更新数量
+      // Partial sell, update quantity
       const newQuantity = currentQuantity - sellQuantity;
       await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [newQuantity, assetId]);
     }
     
-    // 增加现金余额
-    const userId = 1; // 假设只有一个用户
+    // Increase cash balance
+    const userId = 1; // Assume only one user
     const cashAssetType = 'cash';
     const cashAssetId = 0;
     
-    // 检查是否已有现金资产
+    // Check if cash asset already exists
     const [cashExists] = await pool.query(
       'SELECT id, quantity FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ?',
       [userId, cashAssetType, cashAssetId]
     );
     
     if (cashExists.length > 0) {
-      // 已有现金资产，更新数量
+      // Cash asset exists, update quantity
       const newCashQuantity = parseFloat(cashExists[0].quantity) + sellAmount;
       await pool.query(
         'UPDATE portfolio SET quantity = ? WHERE id = ?',
         [newCashQuantity, cashExists[0].id]
       );
     } else {
-      // 没有现金资产，创建新记录
-      const purchasePrice = 1; // 现金的购买价格为1
+      // No cash asset, create new record
+      const purchasePrice = 1; // Purchase price for cash is 1
       const purchaseDate = new Date().toISOString().split('T')[0];
       
       await pool.query(
@@ -833,45 +833,45 @@ apiRouter.post('/portfolio/sell', async (req, res) => {
       );
     }
     
-    res.json({ success: true, message: '资产卖出成功', amount: sellAmount });
+    res.json({ success: true, message: 'Asset sold successfully', amount: sellAmount });
   } catch (error) {
-    console.error('卖出资产错误:', error);
+    console.error('Error selling asset:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// 充值现金到投资组合
+// Deposit cash to portfolio
 apiRouter.post('/portfolio/recharge', async (req, res) => {
   try {
     const { amount } = req.body;
     
-    // 验证金额
+    // Validate amount
     if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: '无效的充值金额' });
+      return res.status(400).json({ error: 'Invalid deposit amount' });
     }
     
-    // 假设只有一个用户，ID为1
+    // Assume only one user, ID is 1
     const userId = 1;
     const assetType = 'cash';
     const assetId = 0;
     
-    // 检查是否已有现金资产
+    // Check if cash asset already exists
     const [cashExists] = await pool.query(
       'SELECT id, quantity FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ?',
       [userId, assetType, assetId]
     );
     
     if (cashExists.length > 0) {
-      // 已有现金资产，更新数量
+      // Cash asset exists, update quantity
       const newQuantity = parseFloat(cashExists[0].quantity) + parseFloat(amount);
       await pool.query(
         'UPDATE portfolio SET quantity = ? WHERE id = ?',
         [newQuantity, cashExists[0].id]
       );
     } else {
-      // 没有现金资产，创建新记录
+      // No cash asset, create new record
       const quantity = amount;
-      const purchasePrice = 1; // 现金的购买价格为1
+      const purchasePrice = 1; // Purchase price for cash is 1
       const purchaseDate = new Date().toISOString().split('T')[0];
       
       await pool.query(
@@ -880,7 +880,7 @@ apiRouter.post('/portfolio/recharge', async (req, res) => {
       );
     }
     
-    res.json({ success: true, message: '充值成功' });
+    res.json({ success: true, message: 'Deposit successful' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -902,9 +902,9 @@ apiRouter.get('/history', async (req, res) => {
           ORDER BY trade_date DESC
           LIMIT 50
       `);
-      console.log('获取历史数据:', rows.length);
+      console.log('Getting historical data:', rows.length);
       
-      // 如果没有历史数据，则返回股票表中的数据
+      // If no historical data, return data from stocks table
       if (rows.length === 0) {
           const [stocks] = await pool.query('SELECT * FROM stocks ORDER BY symbol');
           const formattedStocks = stocks.map(stock => {
@@ -924,14 +924,14 @@ apiRouter.get('/history', async (req, res) => {
                   stock_id: stock.id
               };
           });
-          console.log('返回模拟历史数据:', formattedStocks.length);
+          console.log('Returning simulated historical data:', formattedStocks.length);
           return res.json(formattedStocks);
       }
       
       res.json(rows);
   } catch (err) {
-      console.error('获取历史数据错误:', err);
-      res.status(500).json({ error: '服务器错误' });
+      console.error('Error getting historical data:', err);
+      res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -942,22 +942,22 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   }
   console.log(`GET /api/stocks/${symbol}/history called`);
   try {
-    // 尝试从Yahoo Finance API获取历史数据
+    // Try to get historical data from Yahoo Finance API
     try {
-      console.log(`尝试从Yahoo Finance API获取 ${symbol} 的历史数据`);
+      console.log(`Trying to get historical data for ${symbol} from Yahoo Finance API`);
       const historyData = await priceService.fetchHistoricalData(symbol);
       
       if (historyData && historyData.labels && historyData.labels.length > 0) {
-        console.log(`成功从Yahoo Finance API获取到 ${symbol} 的历史数据`);
+        console.log(`Successfully got historical data for ${symbol} from Yahoo Finance API`);
         return res.json(historyData);
       } else {
-        console.log(`Yahoo Finance API没有返回 ${symbol} 的有效历史数据`);
+        console.log(`Yahoo Finance API did not return valid historical data for ${symbol}`);
       }
     } catch (apiError) {
-      console.error(`从Yahoo Finance API获取 ${symbol} 的历史数据失败:`, apiError);
+      console.error(`Failed to get historical data for ${symbol} from Yahoo Finance API:`, apiError);
     }
     
-    // 如果API获取失败，尝试从数据库获取历史数据
+    // If API fails, try to get historical data from database
     const [historyData] = await pool.query(`
       SELECT trade_date, open_price, high_price, low_price, close_price, volume
       FROM stock_history
@@ -967,26 +967,26 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
     `, [symbol]);
     
     if (historyData.length === 0) {
-      console.log(`没有找到 ${symbol} 的历史数据，生成模拟数据`);
+      console.log(`No historical data found for ${symbol}, generating simulated data`);
       
-      // 如果没有历史数据，生成模拟数据
+      // If no historical data, generate simulated data
       const [stockInfo] = await pool.query('SELECT current_price FROM stocks WHERE symbol = ?', [symbol]);
       
       if (stockInfo.length === 0) {
-        return res.status(404).json({ error: '未找到该股票' });
+        return res.status(404).json({ error: 'Stock not found' });
       }
       
       const basePrice = parseFloat(stockInfo[0].current_price);
       const labels = [];
       const values = [];
       
-      // 生成过去30天的模拟数据
+      // Generate simulated data for past 30 days
       for (let i = 30; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         labels.push(date.toLocaleDateString('zh-CN'));
         
-        // 生成当天价格（在基础价格上下10%波动）
+        // Generate daily price (fluctuate within 10% of base price)
         const dailyChange = (Math.random() - 0.5) * 0.1;
         const price = basePrice * (1 + dailyChange * i / 30);
         values.push(price.toFixed(2));
@@ -999,7 +999,7 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
       });
     }
     
-    // 格式化数据库中的历史数据
+    // Format historical data from database
     const labels = historyData.map(item => {
       const date = new Date(item.trade_date);
       return date.toLocaleDateString('zh-CN');
@@ -1018,21 +1018,21 @@ apiRouter.get('/stocks/:symbol/history', async (req, res) => {
   }
 });
 
-// 挂载API路由
+// Mount API routes
 app.use('/api', apiRouter);
 
-// 前端路由 - 使用try-catch包装
+// Frontend routes - wrapped in try-catch
 app.get('*', (req, res) => {
   try {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   } catch (error) {
-    console.error('前端路由错误:', error);
+    console.error('Frontend route error:', error);
     res.status(404).send('Not Found');
   }
 });
 
-// 启动服务器
+// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  console.log('数据库连接成功');
+  console.log('Database connection successful');
 });

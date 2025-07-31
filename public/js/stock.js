@@ -12,32 +12,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateAllPriceBtn = document.getElementById('update-all-price-btn');
 
 
-    // 隐藏加载指示器和错误提示
+    // Hide loading indicator and error message
     loadingIndicator.style.display = 'none';
     errorElement.style.display = 'none';
 
-    // 加载股票列表
+    // Load stock list
     loadStockList();
 
-    // 查询股票按钮点击事件
+    // Stock search button click event
     searchStockButton.addEventListener('click', () => {
-        console.log('开始查询股票信息');
+        console.log('Starting stock information query');
         const symbol = stockSymbolInput.value.trim().toUpperCase();
         if (symbol) {
             getStockData(symbol);
-            console.log('获取股票数据:', symbol);
+            console.log('Getting stock data:', symbol);
         } else {
-            showError('请输入股票代码');
+            showError('Please enter a stock symbol');
         }
     });
 
-    // 更新价格按钮点击事件
+    // Update price button click event
     updatePriceButton.addEventListener('click', () => {
         const symbol = stockSymbolInput.value.trim().toUpperCase();
         if (symbol) {
             updateStockPrice(symbol);
         } else {
-            showError('请输入股票代码');
+            showError('Please enter a stock symbol');
         }
     });
 
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (!response.ok || result.error) {
-                throw new Error(result.error || '批量更新失败');
+                throw new Error(result.error || 'Batch update failed');
             }
             
             showError(result.message, true); // Use showError to display success message
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             showError(error.message);
-            console.error('批量更新失败:', error);
+            console.error('Batch update failed:', error);
         } finally {
             hideLoading();
         }
@@ -113,26 +113,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 获取股票数据
+    // Get stock data
     async function getStockData(symbol) {
-        console.log('开始获取股票信息数据');
-        stockDataElement.innerHTML = '<p>加载股票数据中...</p>';
+        console.log('Starting to fetch stock information data');
+        stockDataElement.innerHTML = '<p>Loading stock data...</p>';
         showLoading();
         
         try {
             const response = await fetch(`/api/stocks/single/${symbol}`);
             if (!response.ok) {
-                throw new Error('获取股票数据失败');
+                throw new Error('Failed to get stock data');
             }
             const stockData = await response.json();
-            console.log('获取到股票数据:', stockData);
+            console.log('Retrieved stock data:', stockData);
             displayStockData(stockData);
             
-            // 同时获取并显示历史图表
+            // Simultaneously get and display historical chart
             displayHistoricalChart(symbol);
         } catch (error) {
             showError(error.message);
-            console.error('获取股票数据失败:', error);
+            console.error('Failed to get stock data:', error);
         } finally {
             hideLoading();
         }
@@ -148,17 +148,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        chartContainer.innerHTML = '<p class="loading">正在加载图表数据...</p>';
+        chartContainer.innerHTML = '<p class="loading">Loading chart data...</p>';
         chartContainer.classList.add('active'); // Expand the container to show loading message
 
         try {
             const response = await fetch(`/api/stocks/${symbol.toUpperCase()}/history`);
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || `获取数据失败: ${response.statusText}`);
+                throw new Error(errorData.error || `Failed to get data: ${response.statusText}`);
             }
             const chartData = await response.json();
-            console.log('获取到历史数据:', chartData);
+            console.log('Retrieved historical data:', chartData);
             
             // Create the chart (existing logic)
             const ctx = document.createElement('canvas');
@@ -172,26 +172,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 symbol: symbol
             });
         } catch (error) {
-            chartContainer.innerHTML = `<p class="error-message">无法加载 ${symbol} 的图表: ${error.message}</p>`;
-            console.error('图表加载错误:', error);
+            chartContainer.innerHTML = `<p class="error-message">Unable to load chart for ${symbol}: ${error.message}</p>`;
+            console.error('Chart loading error:', error);
             // Ensure the container stays active to show the error
             chartContainer.classList.add('active');
         }
     }
 
-    // 更新股票价格
+    // Update stock price
     async function updateStockPrice(symbol) {
         showLoading();
         try {
             const response = await fetch(`/api/stocks/${symbol}/update`, { method: 'POST' });
             if (!response.ok) {
-                throw new Error('更新股票价格失败');
+                throw new Error('Failed to update stock price');
             }
             const result = await response.json();
             showError(result.message, true);
-            // 重新加载股票列表
+            // Reload stock list
             loadStockList();
-            // 重新获取股票数据
+            // Retrieve stock data again
             getStockData(symbol);
         } catch (error) {
             showError(error.message);
@@ -200,97 +200,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 更新所有股票价格
+    // Update all stock prices
     async function updateAllStockPrices() {
         showLoading();
-        showError('正在更新所有股票价格...', true);
+        showError('Updating all stock prices...', true);
         
         try {
             const response = await fetch('/api/stocks/update-all', { method: 'POST' });
             if (!response.ok) {
-                throw new Error('更新所有股票价格失败');
+                throw new Error('Failed to update all stock prices');
             }
             const result = await response.json();
-            showError(result.message || '所有股票价格更新成功', true);
-            // 重新加载股票列表
+            showError(result.message || 'All stock prices updated successfully', true);
+            // Reload stock list
             loadStockList();
         } catch (error) {
-            showError('更新所有股票价格失败: ' + error.message);
-            console.error('更新所有股票价格失败:', error);
+            showError('Failed to update all stock prices: ' + error.message);
+            console.error('Failed to update all stock prices:', error);
         } finally {
             hideLoading();
         }
     }
 
-    // 更新所有股票价格
+    // Update all stock prices
     async function updateAllStockPrices() {
         showLoading();
-        showError('正在更新所有股票价格...', true);
+        showError('Updating all stock prices...', true);
         
         try {
             const response = await fetch('/api/stocks/update-all', { method: 'POST' });
             if (!response.ok) {
-                throw new Error('更新所有股票价格失败');
+                throw new Error('Failed to update all stock prices');
             }
             const result = await response.json();
-            showError(result.message || '所有股票价格更新成功', true);
-            // 重新加载股票列表
+            showError(result.message || 'All stock prices updated successfully', true);
+            // Reload stock list
             loadStockList();
         } catch (error) {
-            showError('更新所有股票价格失败: ' + error.message);
-            console.error('更新所有股票价格失败:', error);
+            showError('Failed to update all stock prices: ' + error.message);
+            console.error('Failed to update all stock prices:', error);
         } finally {
             hideLoading();
         }
     }
 
-    // 更新所有股票价格
+    // Update all stock prices
     async function  updateAllStockPricesBtn() {
         showLoading();
-        showError('正在更新所有股票价格...', true);
+        showError('Updating all stock prices...', true);
         
         try {
             const response = await fetch('/api/stocks/refresh', { method: 'POST' });
             if (!response.ok) {
-                throw new Error('更新所有股票价格失败');
+                throw new Error('Failed to update all stock prices');
             }
             const result = await response.json();
-            showError(result.message || '所有股票价格更新成功', true);
-            // 重新加载股票列表
+            showError(result.message || 'All stock prices updated successfully', true);
+            // Reload stock list
             loadStockList();
 
-            const currentSymbol = stockSymbolInput.value.trim().toUpperCase(); // 获取当前输入的股票代码
+            const currentSymbol = stockSymbolInput.value.trim().toUpperCase(); // Get the currently entered stock symbol
             if (currentSymbol) {
                 getStockData(currentSymbol);
             }
             
         } catch (error) {
-            showError('更新所有股票价格失败: ' + error.message);
-            console.error('更新所有股票价格失败:', error);
+            showError('Failed to update all stock prices: ' + error.message);
+            console.error('Failed to update all stock prices:', error);
         } finally {
             hideLoading();
         }
     }
 
-    // 加载股票列表
+    // Load stock list
     async function loadStockList() {
-        console.log('加载股票列表');
+        console.log('Loading stock list');
         try {
             const response = await fetch('/api/stocks');
             if (!response.ok) {
-                throw new Error('获取股票列表失败');
+                throw new Error('Failed to get stock list');
             }
             const stocks = await response.json();
-            console.log('加载股票列表:', stocks);
+            console.log('Loaded stock list:', stocks);
             displayStockList(stocks);
         } catch (error) {
-            console.error('加载股票列表失败:', error);
+            console.error('Failed to load stock list:', error);
         }
     }
 
-    // 显示股票数据
+    // Display stock data
     function displayStockData(stockData) {
-        // 计算涨跌颜色
+        // Calculate change color
         const changePercent = parseFloat(stockData.change_percent) || 0;
         const changeClass = changePercent >= 0 ? 'positive' : 'negative';
         const changeSign = changePercent >= 0 ? '+' : '';
@@ -308,21 +308,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="stock-stats">
                         <div class="stat-item">
-                            <span class="stat-label">成交量:</span>
+                            <span class="stat-label">Volume:</span>
                             <span class="stat-value">${formatNumber(stockData.volume || 0)}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">市值:</span>
+                            <span class="stat-label">Market Cap:</span>
                             <span class="stat-value">¥${formatNumber(stockData.market_cap || 0)}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">更新时间:</span>
+                            <span class="stat-label">Updated:</span>
                             <span class="stat-value">${new Date(stockData.updated_at || new Date()).toLocaleString()}</span>
                         </div>
                     </div>
                     <div class="stock-actions">
                         <button class="btn btn-primary" onclick="window.location.href='add_asset.html?type=stock&symbol=${stockData.symbol}&name=${stockData.name || stockData.symbol}&price=${stockData.current_price || stockData.price}'">
-                            购买股票
+                            Buy Stock
                         </button>
                     </div>
                 </div>
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // 显示股票列表
+    // Display stock list
     function displayStockList(stocks) {
         let html = '';
         stocks.forEach(stock => {
@@ -349,14 +349,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn btn-sm btn-success buy-btn" 
                                 data-symbol="${stock.symbol}" 
                                 data-name="${stock.name}" 
-                                data-price="${stock.current_price}">购买</button>
+                                data-price="${stock.current_price}">Buy</button>
                     </td>
                 </tr>
             `;
         });
         stockTableBody.innerHTML = html;
 
-        // 为查看按钮添加事件监听
+        // Add event listeners to view buttons
         document.querySelectorAll('.view-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
@@ -365,38 +365,38 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 为购买按钮添加事件监听
+        // Add event listeners to buy buttons
         document.querySelectorAll('.buy-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const symbol = e.target.getAttribute('data-symbol');
                 const name = e.target.getAttribute('data-name');
                 const price = e.target.getAttribute('data-price'); // Get the price from the data attribute
-                // 跳转到添加资产页面，并传递股票信息
+                // Redirect to add asset page and pass stock information
                 // FIX: Add the price to the URL query parameters
                 window.location.href = `add_asset.html?type=stock&symbol=${symbol}&name=${name}&price=${price}`;
             });
         });
     }
 
-    // 显示加载指示器
+    // Show loading indicator
     function showLoading() {
         loadingIndicator.style.display = 'block';
         errorElement.style.display = 'none';
     }
 
-    // 隐藏加载指示器
+    // Hide loading indicator
     function hideLoading() {
         loadingIndicator.style.display = 'none';
     }
 
-    // 显示错误信息
+    // Show error message
     function showError(message, isSuccess = false) {
         errorElement.textContent = message;
         errorElement.style.display = 'block';
         errorElement.className = isSuccess ? 'success' : 'error';
     }
 
-    // 格式化数字
+    // Format number
     function formatNumber(num) {
         if (num >= 1000000000) {
             return (num / 1000000000).toFixed(2) + 'B';
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return num.toString();
     }
 
-    // 添加CSS样式
+    // Add CSS styles
     const style = document.createElement('style');
     style.textContent = `
         .action-btn {
@@ -424,15 +424,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         .view-btn {
-            background-color: #17a2b8; /* 蓝绿色 */
+            background-color: #17a2b8; /* Teal */
         }
         
         .buy-btn {
-            background-color: #28a745; /* 绿色 */
+            background-color: #28a745; /* Green */
         }
         
         .update-btn {
-            background-color: #f0ad4e; /* 橙色 */
+            background-color: #f0ad4e; /* Orange */
         }
         
         .action-btn:hover {
