@@ -1,0 +1,486 @@
+openapi: 3.0.3
+info:
+  title: "LittleBankXA Portfolio Management API"
+  description: "A REST API to manage a financial portfolio containing stocks and bonds, track performance, and simulate trading activities."
+  version: "1.0.0"
+servers:
+  - url: "http://localhost:3003/api"
+    description: "Local development server"
+
+tags:
+  - name: "User & Overview"
+    description: "Endpoints for retrieving user information and high-level portfolio summaries."
+  - name: "Portfolio Management"
+    description: "Endpoints for managing the assets within the portfolio."
+  - name: "Market Data - Stocks"
+    description: "Endpoints for retrieving stock market data."
+  - name: "Market Data - Bonds"
+    description: "Endpoints for retrieving bond market data."
+  - name: "Transactions"
+    description: "Endpoints for buying, selling, and managing cash."
+
+paths:
+  /user:
+    get:
+      tags:
+        - "User & Overview"
+      summary: "Get User Information"
+      description: "Retrieves the details of the single, hardcoded user, including their cash balance and total asset values."
+      responses:
+        '200':
+          description: "Successful response with user data."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: "User not found."
+        '500':
+          description: "Internal Server Error."
+
+  /portfolio/overview:
+    get:
+      tags:
+        - "User & Overview"
+      summary: "Get Portfolio Overview"
+      description: "Provides a high-level summary of the portfolio, including total value, total return, and the value of each asset class."
+      responses:
+        '200':
+          description: "Successful response with portfolio overview data."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioOverview'
+        '500':
+          description: "Internal Server Error."
+
+  /portfolio:
+    get:
+      tags:
+        - "Portfolio Management"
+      summary: "Get Full Portfolio Details"
+      description: "Retrieves a detailed list of all assets currently held in the portfolio, including stocks and bonds with their current market values."
+      responses:
+        '200':
+          description: "A list of all assets in the portfolio."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PortfolioAsset'
+        '500':
+          description: "Internal Server Error."
+    post:
+      tags:
+        - "Portfolio Management"
+      summary: "Add an Asset to Portfolio"
+      description: "Adds a new stock or bond to the portfolio. If the stock/bond doesn't exist in the master list, it's created."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewAsset'
+      responses:
+        '200':
+          description: "Asset added successfully."
+        '400':
+          description: "Invalid asset type or missing required fields."
+        '500':
+          description: "Internal Server Error."
+
+  /portfolio/{id}:
+    delete:
+      tags:
+        - "Portfolio Management"
+      summary: "Delete an Asset from Portfolio"
+      description: "Permanently removes an asset holding from the portfolio by its unique portfolio ID."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: "The unique ID of the portfolio holding to delete."
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Asset deleted successfully."
+        '404':
+          description: "Asset with the specified ID not found."
+        '500':
+          description: "Internal Server Error."
+
+  /portfolio/sell:
+    post:
+      tags:
+        - "Transactions"
+      summary: "Sell a Quantity of an Asset"
+      description: "Sells a specified quantity of an asset from the portfolio. The user's cash balance is increased by the sale amount."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assetId:
+                  type: integer
+                  description: "The unique ID of the portfolio holding to sell from."
+                  example: 16
+                quantity:
+                  type: number
+                  description: "The amount of the asset to sell."
+                  example: 10
+      responses:
+        '200':
+          description: "Asset sold successfully."
+        '400':
+          description: "Invalid input, or sell quantity exceeds holdings."
+        '500':
+          description: "Internal Server Error."
+
+  /portfolio/recharge:
+    post:
+      tags:
+        - "Transactions"
+      summary: "Recharge Cash Balance"
+      description: "Adds a specified amount of cash to the user's balance."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  description: "The amount of cash to add."
+                  example: 1000
+      responses:
+        '200':
+          description: "Cash recharged successfully."
+        '400':
+          description: "Invalid amount."
+        '500':
+          description: "Internal Server Error."
+
+  /stocks:
+    get:
+      tags:
+        - "Market Data - Stocks"
+      summary: "Get Stock List"
+      description: "Retrieves a list of all available stocks from the database, with their latest prices."
+      responses:
+        '200':
+          description: "A list of stocks."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stock'
+        '500':
+          description: "Internal Server Error."
+
+  /stocks/search:
+    get:
+      tags:
+        - "Market Data - Stocks"
+      summary: "Search for Stock Symbols"
+      description: "Searches for stock symbols based on a query string. Used for autocomplete functionality."
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: "The search term (e.g., 'Apple')."
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "A list of matching stocks from the API."
+        '400':
+          description: "Query parameter is missing."
+        '500':
+          description: "Internal Server Error."
+
+  /stocks/{symbol}/price-on-date:
+    get:
+      tags:
+        - "Market Data - Stocks"
+      summary: "Get Historical Price on Date"
+      description: "Fetches the closing price of a stock for a specific historical date."
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: "The stock symbol (e.g., 'AAPL')."
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          description: "The date in YYYY-MM-DD format."
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "The price on the specified date."
+        '404':
+          description: "Price not found for the selected date."
+        '500':
+          description: "Internal Server Error."
+
+  /stocks/{symbol}/history:
+    get:
+      tags:
+        - "Market Data - Stocks"
+      summary: "Get Stock Historical Data"
+      description: "Retrieves historical data for a stock, formatted for use in charts."
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: "The stock symbol (e.g., 'AAPL')."
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Historical data for the stock."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+        '500':
+          description: "Internal Server Error."
+
+  /bonds:
+    get:
+      tags:
+        - "Market Data - Bonds"
+      summary: "Get Bond List"
+      description: "Retrieves a list of all available bonds from the database."
+      responses:
+        '200':
+          description: "A list of bonds."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bond'
+        '500':
+          description: "Internal Server Error."
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "张三"
+        total_assets:
+          type: number
+          format: float
+          example: 51234.56
+        stock_value:
+          type: number
+          format: float
+          example: 25000.00
+        bond_value:
+          type: number
+          format: float
+          example: 15000.00
+        cash_balance:
+          type: number
+          format: float
+          example: 11234.56
+
+    PortfolioOverview:
+      type: object
+      properties:
+        totalValue:
+          type: number
+          format: float
+          example: 51234.56
+        totalReturn:
+          type: number
+          format: float
+          example: 2.47
+        stockValue:
+          type: number
+          format: float
+          example: 25000.00
+        bondValue:
+          type: number
+          format: float
+          example: 15000.00
+        cashBalance:
+          type: number
+          format: float
+          example: 11234.56
+
+    PortfolioAsset:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: "The unique ID of this portfolio holding."
+          example: 16
+        asset_type:
+          type: string
+          enum: [stock, bond]
+          example: "stock"
+        symbol:
+          type: string
+          example: "AAPL"
+        name:
+          type: string
+          example: "Apple Inc."
+        quantity:
+          type: number
+          format: float
+          example: 50
+        purchase_price:
+          type: number
+          format: float
+          example: 150.25
+        current_price:
+          type: number
+          format: float
+          example: 175.50
+        current_value:
+          type: number
+          format: float
+          example: 8775.00
+        profit_loss:
+          type: number
+          format: float
+          example: 1262.50
+        profit_loss_percent:
+          type: number
+          format: float
+          example: 16.8
+
+    Stock:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        symbol:
+          type: string
+          example: "AAPL"
+        name:
+          type: string
+          example: "Apple Inc."
+        current_price:
+          type: number
+          format: float
+          example: 175.50
+        change_percent:
+          type: number
+          format: float
+          example: 1.25
+        volume:
+          type: integer
+          example: 50000000
+        market_cap:
+          type: integer
+          example: 2800000000000
+
+    Bond:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        symbol:
+          type: string
+          example: "US-GOVT-10Y"
+        name:
+          type: string
+          example: "10-Year Government Bond"
+        face_value:
+          type: number
+          format: float
+          example: 1000.00
+        coupon_rate:
+          type: number
+          format: float
+          example: 3.5
+        maturity_date:
+          type: string
+          format: date
+          example: "2033-10-01"
+        current_price:
+          type: number
+          format: float
+          example: 985.50
+
+    NewAsset:
+      type: object
+      required:
+        - assetType
+        - symbol
+        - quantity
+        - purchasePrice
+        - purchaseDate
+      properties:
+        assetType:
+          type: string
+          enum: [stock, bond]
+          example: "stock"
+        symbol:
+          type: string
+          example: "MSFT"
+        quantity:
+          type: number
+          example: 20
+        purchasePrice:
+          type: number
+          example: 300.00
+        purchaseDate:
+          type: string
+          format: date
+          example: "2023-05-10"
+        faceValue:
+          type: number
+          description: "Required if assetType is 'bond'."
+          example: 1000
+        couponRate:
+          type: number
+          description: "Required if assetType is 'bond'."
+          example: 4.1
+        maturityDate:
+          type: string
+          format: date
+          description: "Required if assetType is 'bond'."
+          example: "2030-01-01"
+
+    History:
+      type: object
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+          example: ["2023-10-01", "2023-10-02"]
+        values:
+          type: array
+          items:
+            type: number
+            format: float
+          example: [170.5, 171.2]
+        symbol:
+          type: string
+          example: "AAPL"
+```
