@@ -1,34 +1,34 @@
 const mysql = require('mysql2/promise');
 
-// 数据库配置
+// Database configuration
 const dbConfig = {
   host: 'localhost',
-  user: 'root', // 默认用户名，根据实际情况修改
-  password: 'n3u3da!', // Anaconda MySQL可能没有设置密码
-  database: 'investment_system', // 数据库名称，稍后我们会创建
+  user: 'root', // Default username, modify as needed
+  password: '624135', // Anaconda MySQL may not have a password set
+  database: 'investment_system', // Database name
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  port: 3306 // 默认端口，如果Anaconda使用不同端口，请修改
+  port: 3306 // Default port, modify if using a different port
 };
 
-// 创建数据库连接池
+// Create database connection pool
 const pool = mysql.createPool(dbConfig);
 
-// 测试连接
+// Test connection
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
-    console.log('数据库连接成功');
+    console.log('Database connection successful');
     connection.release();
   } catch (error) {
-    console.error('数据库连接失败:', error);
-    console.log('请确保MySQL服务已启动，并且用户名和密码正确');
-    console.log('如果数据库不存在，将尝试创建数据库');
+    console.error('Database connection failed:', error);
+    console.log('Please ensure MySQL service is running and credentials are correct');
+    console.log('If the database does not exist, will attempt to create it');
     
-    // 尝试创建数据库
+    // Try to create database
     try {
-      // 创建不指定数据库的连接池
+      // Create connection pool without specifying database
       const rootPool = mysql.createPool({
         host: dbConfig.host,
         user: dbConfig.user,
@@ -38,14 +38,14 @@ async function testConnection() {
         queueLimit: 0
       });
       
-      // 创建数据库
+      // Create database
       await rootPool.query(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
-      console.log(`数据库 ${dbConfig.database} 创建成功`);
+      console.log(`Database ${dbConfig.database} created successfully`);
       
-      // 关闭连接池
+      // Close connection pool
       await rootPool.end();
     } catch (createError) {
-      console.error('创建数据库失败:', createError);
+      console.error('Failed to create database:', createError);
     }
   }
 }

@@ -1,17 +1,17 @@
 /**
- * 投资组合服务 - 处理资产买卖和管理
+ * Portfolio Service - Handles asset buying, selling and management
  */
 
 const pool = require('../db');
 const priceService = require('./priceService'); // Import the price service
 
 /**
- * 更新用户资产总值
- * @param {number} userId - 用户ID
+ * Update user asset values
+ * @param {number} userId - User ID
  */
 async function updateUserAssetValues(userId) {
   try {
-    // 获取用户的股票资产
+    // Get user's stock assets
     const [stockAssets] = await pool.query(`
       SELECT p.*, s.current_price 
       FROM portfolio p
@@ -19,7 +19,7 @@ async function updateUserAssetValues(userId) {
       WHERE p.user_id = ? AND p.asset_type = 'stock' AND p.status = 1
     `, [userId]);
     
-    // 获取用户的债券资产
+    // Get user's bond assets
     const [bondAssets] = await pool.query(`
       SELECT p.*, b.current_price 
       FROM portfolio p
@@ -27,30 +27,30 @@ async function updateUserAssetValues(userId) {
       WHERE p.user_id = ? AND p.asset_type = 'bond' AND p.status = 1
     `, [userId]);
     
-    // 计算股票总值
+    // Calculate stock value
     let stockValue = 0;
     for (const asset of stockAssets) {
       stockValue += parseFloat(asset.quantity) * parseFloat(asset.current_price);
     }
     
-    // 计算债券总值
+    // Calculate bond value
     let bondValue = 0;
     for (const asset of bondAssets) {
       bondValue += parseFloat(asset.quantity) * parseFloat(asset.current_price);
     }
     
-    // 获取用户现金余额
+    // Get user's cash balance
     const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
     const cashBalance = parseFloat(users[0].cash_balance);
     
-    // 计算总资产
+    // Calculate total assets
     const totalAssets = stockValue + bondValue + cashBalance;
     
-    // 计算总回报率（假设初始资金为50000）
+    // Calculate total return rate (assuming initial investment of 50000)
     const initialInvestment = 50000;
     const totalReturnRate = ((totalAssets - initialInvestment) / initialInvestment) * 100;
     
-    // 更新用户资产信息
+    // Update user asset information
     await pool.query(`
       UPDATE users 
       SET stock_value = ?, 
@@ -68,41 +68,41 @@ async function updateUserAssetValues(userId) {
       totalReturnRate
     };
   } catch (error) {
-    console.error('更新用户资产总值失败:', error);
+    console.error('Failed to update user asset values:', error);
     throw error;
   }
 }
 
 /**
- * 购买股票
- * @param {number} userId - 用户ID
- * @param {string} symbol - 股票代码
- * @param {string} name - 股票名称
- * @param {number} price - 购买价格
- * @param {number} quantity - 购买数量
- * @returns {Object} 购买结果
+ * Buy stock
+ * @param {number} userId - User ID
+ * @param {string} symbol - Stock symbol
+ * @param {string} name - Stock name
+ * @param {number} price - Purchase price
+ * @param {number} quantity - Purchase quantity
+ * @returns {Object} Purchase result
  */
 async function buyStock(userId, symbol, name, price, quantity) {
   try {
     if (!symbol || !price || !quantity || quantity <= 0) {
-      throw new Error('参数不完整或无效');
+      throw new Error('Incomplete or invalid parameters');
     }
     
     const totalCost = parseFloat(price) * parseFloat(quantity);
     
-    // 检查用户现金余额
+    // Check user's cash balance
     const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
-      throw new Error('用户不存在');
+      throw new Error('User does not exist');
     }
     
     const currentCash = parseFloat(users[0].cash_balance);
     
     if (currentCash < totalCost) {
-      throw new Error(`现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}`);
+      throw new Error(`Insufficient cash balance, current balance: ¥${currentCash.toFixed(2)}, required: ¥${totalCost.toFixed(2)}`);
     }
     
-    // 查找或创建股票记录
+    // Find or create stock record
     let [stockRecords] = await pool.query('SELECT * FROM stocks WHERE symbol = ?', [symbol]);
     let stockId;
     
@@ -114,18 +114,18 @@ async function buyStock(userId, symbol, name, price, quantity) {
       stockId = result.insertId;
     } else {
       stockId = stockRecords[0].id;
-      // 更新当前价格
+      // Update current price
       await pool.query('UPDATE stocks SET current_price = ? WHERE id = ?', [price, stockId]);
     }
     
-    // 检查portfolio表中是否已有相同股票持仓
+    // Check if there's already a holding of the same stock in portfolio table
     const [existingHoldings] = await pool.query(
       'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
       [userId, 'stock', stockId]
     );
     
     if (existingHoldings.length > 0) {
-      // 更新现有持仓
+      // Update existing holding
       const existing = existingHoldings[0];
       const existingQuantity = parseFloat(existing.quantity);
       const existingPrice = parseFloat(existing.purchase_price);
@@ -138,65 +138,65 @@ async function buyStock(userId, symbol, name, price, quantity) {
         [newQuantity, newAvgPrice, existing.id]
       );
     } else {
-      // 创建新持仓记录
+      // Create new holding record
       await pool.query(
         'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1)',
         [userId, 'stock', stockId, name || symbol, quantity, price]
       );
     }
     
-    // 更新用户现金余额
+    // Update user's cash balance
     await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
     
-    // 更新用户资产总值
+    // Update user asset values
     await updateUserAssetValues(userId);
     
     return { 
       success: true, 
-      message: '股票购买成功！',
+      message: 'Stock purchased successfully!',
       totalCost: totalCost.toFixed(2),
       symbol: symbol,
       quantity: quantity
     };
   } catch (error) {
-    console.error('购买股票失败:', error);
+    console.error('Failed to buy stock:', error);
     throw error;
   }
 }
 
 /**
- * 购买债券
- * @param {number} userId - 用户ID
- * @param {string} symbol - 债券代码
- * @param {string} name - 债券名称
- * @param {number} price - 购买价格
- * @param {number} quantity - 购买数量
- * @param {number} faceValue - 面值
- * @param {number} couponRate - 票面利率
- * @param {string} maturityDate - 到期日
- * @returns {Object} 购买结果
+ * Buy bond
+ * @param {number} userId - User ID
+ * @param {string} symbol - Bond symbol
+ * @param {string} name - Bond name
+ * @param {number} price - Purchase price
+ * @param {number} quantity - Purchase quantity
+ * @param {number} faceValue - Face value
+ * @param {number} couponRate - Coupon rate
+ * @param {string} maturityDate - Maturity date
+ * @returns {Object} Purchase result
  */
 async function buyBond(userId, symbol, name, price, quantity, faceValue = 1000, couponRate = 3.5, maturityDate = '2030-12-31') {
   try {
     if (!symbol || !price || !quantity || quantity <= 0) {
-      throw new Error('参数不完整或无效');
+      throw new Error('Incomplete or invalid parameters');
     }
     
     const totalCost = parseFloat(price) * parseFloat(quantity);
     
-    // 检查用户现金余额
+    // Check user's cash balance
     const [users] = await pool.query('SELECT cash_balance FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
-      throw new Error('用户不存在');
+      throw new Error('User does not exist');
     }
     
     const currentCash = parseFloat(users[0].cash_balance);
     
     if (currentCash < totalCost) {
-      throw new Error(`现金余额不足，当前余额: ¥${currentCash.toFixed(2)}，需要: ¥${totalCost.toFixed(2)}`);
+      throw new Error(`Insufficient cash balance, current balance: ¥${currentCash.toFixed(2)}, required: ¥${totalCost.toFixed(2)}`);
     }
     
-    // 查找或创建债券记录
+    // Find or create bond record
     let [bondRecords] = await pool.query('SELECT * FROM bonds WHERE symbol = ?', [symbol]);
     let bondId;
     
@@ -208,18 +208,18 @@ async function buyBond(userId, symbol, name, price, quantity, faceValue = 1000, 
       bondId = result.insertId;
     } else {
       bondId = bondRecords[0].id;
-      // 更新当前价格
+      // Update current price
       await pool.query('UPDATE bonds SET current_price = ? WHERE id = ?', [price, bondId]);
     }
     
-    // 检查portfolio表中是否已有相同债券持仓
+    // Check if there's already a holding of the same bond in portfolio table
     const [existingHoldings] = await pool.query(
       'SELECT * FROM portfolio WHERE user_id = ? AND asset_type = ? AND asset_id = ? AND status = 1',
       [userId, 'bond', bondId]
     );
     
     if (existingHoldings.length > 0) {
-      // 更新现有持仓
+      // Update existing holding
       const existing = existingHoldings[0];
       const existingQuantity = parseFloat(existing.quantity);
       const existingPrice = parseFloat(existing.purchase_price);
@@ -232,43 +232,43 @@ async function buyBond(userId, symbol, name, price, quantity, faceValue = 1000, 
         [newQuantity, newAvgPrice, existing.id]
       );
     } else {
-      // 创建新持仓记录
+      // Create new holding record
       await pool.query(
         'INSERT INTO portfolio (user_id, asset_type, asset_id, name, quantity, purchase_price, purchase_date, status) VALUES (?, ?, ?, ?, ?, ?, NOW(), 1)',
         [userId, 'bond', bondId, name || symbol, quantity, price]
       );
     }
     
-    // 更新用户现金余额
+    // Update user's cash balance
     await pool.query('UPDATE users SET cash_balance = cash_balance - ? WHERE id = ?', [totalCost, userId]);
     
-    // 更新用户资产总值
+    // Update user asset values
     await updateUserAssetValues(userId);
     
     return { 
       success: true, 
-      message: '债券购买成功！',
+      message: 'Bond purchased successfully!',
       totalCost: totalCost.toFixed(2),
       symbol: symbol,
       quantity: quantity
     };
   } catch (error) {
-    console.error('购买债券失败:', error);
+    console.error('Failed to buy bond:', error);
     throw error;
   }
 }
 
 /**
- * 卖出资产
- * @param {number} userId - 用户ID
- * @param {number} assetId - 资产ID
- * @param {number} quantity - 卖出数量
- * @returns {Object} 卖出结果
+ * Sell asset
+ * @param {number} userId - User ID
+ * @param {number} assetId - Asset ID
+ * @param {number} quantity - Sell quantity
+ * @returns {Object} Sell result
  */
 async function sellAsset(userId, assetId, quantity) {
   try {
     if (!assetId || !quantity || quantity <= 0) {
-      throw new Error('参数不完整或无效');
+      throw new Error('Incomplete or invalid parameters');
     }
     
     // Step 1: Get asset details from the database
@@ -284,7 +284,7 @@ async function sellAsset(userId, assetId, quantity) {
     );
     
     if (assets.length === 0) {
-      throw new Error('资产不存在或已卖出');
+      throw new Error('Asset does not exist or has already been sold');
     }
     
     const asset = assets[0];
@@ -292,7 +292,7 @@ async function sellAsset(userId, assetId, quantity) {
     const sellQuantity = parseFloat(quantity);
     
     if (sellQuantity > currentQuantity) {
-      throw new Error('卖出数量超过持有数量');
+      throw new Error('Sell quantity exceeds held quantity');
     }
     
     // Step 2: NEW - Update price before selling
@@ -329,10 +329,10 @@ async function sellAsset(userId, assetId, quantity) {
     
     // Step 4: Update portfolio table
     if (Math.abs(sellQuantity - currentQuantity) < 0.0001) {
-      // 全部卖出
+      // Sell all
       await pool.query('UPDATE portfolio SET status = 0 WHERE id = ?', [assetId]);
     } else {
-      // 部分卖出
+      // Partial sell
       const remainingQuantity = currentQuantity - sellQuantity;
       await pool.query('UPDATE portfolio SET quantity = ? WHERE id = ?', [remainingQuantity, assetId]);
     }
@@ -345,45 +345,45 @@ async function sellAsset(userId, assetId, quantity) {
     
     return {
       success: true,
-      message: '卖出成功',
+      message: 'Sold successfully',
       amount: sellAmount,
       quantity: sellQuantity
     };
   } catch (error) {
-    console.error('卖出资产失败:', error);
+    console.error('Failed to sell asset:', error);
     throw error;
   }
 }
 
 /**
- * 充值现金
- * @param {number} userId - 用户ID
- * @param {number} amount - 充值金额
- * @returns {Object} 充值结果
+ * Deposit cash
+ * @param {number} userId - User ID
+ * @param {number} amount - Deposit amount
+ * @returns {Object} Deposit result
  */
 async function rechargeCash(userId, amount) {
   try {
     if (!amount || amount <= 0) {
-      throw new Error('充值金额无效');
+      throw new Error('Invalid deposit amount');
     }
     
     if (amount > 1000000) {
-      throw new Error('单次充值金额不能超过100万元');
+      throw new Error('Single deposit amount cannot exceed 1 million yuan');
     }
     
-    // 更新用户现金余额
+    // Update user's cash balance
     await pool.query('UPDATE users SET cash_balance = cash_balance + ? WHERE id = ?', [amount, userId]);
     
-    // 更新用户资产总值
+    // Update user asset values
     await updateUserAssetValues(userId);
     
     return {
       success: true,
-      message: '充值成功',
+      message: 'Deposit successful',
       amount: parseFloat(amount).toFixed(2)
     };
   } catch (error) {
-    console.error('充值失败:', error);
+    console.error('Deposit failed:', error);
     throw error;
   }
 }

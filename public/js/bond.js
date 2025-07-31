@@ -1,22 +1,22 @@
-// 债券市场页面JavaScript
+// Bond Market Page JavaScript
 
 let currentBondData = null;
 
-// 页面加载完成后初始化
+// Initialize after page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('债券市场页面加载完成');
+    console.log('Bond market page loaded');
     initializeBondMarket();
 });
 
-// 初始化债券市场
+// Initialize bond market
 function initializeBondMarket() {
-    // 绑定查询按钮事件
+    // Bind query button event
     const queryBtn = document.getElementById('query-single-bond-btn');
     if (queryBtn) {
         queryBtn.addEventListener('click', querySingleBond);
     }
 
-    // 绑定输入框回车事件
+    // Bind input box enter event
     const symbolInput = document.getElementById('bond-symbol-input');
     if (symbolInput) {
         symbolInput.addEventListener('keypress', function(e) {
@@ -26,7 +26,7 @@ function initializeBondMarket() {
         });
     }
 
-    // 绑定模态框关闭事件
+    // Bind modal close event
     const modal = document.getElementById('buy-bond-modal');
     if (modal) {
         const closeBtn = modal.querySelector('.close');
@@ -34,7 +34,7 @@ function initializeBondMarket() {
             closeBtn.addEventListener('click', closeBuyBondModal);
         }
 
-        // 点击模态框外部关闭
+        // Close when clicking outside the modal
         window.addEventListener('click', function(event) {
             if (event.target === modal) {
                 closeBuyBondModal();
@@ -42,27 +42,27 @@ function initializeBondMarket() {
         });
     }
 
-    // 绑定数量输入变化事件
+    // Bind quantity input change event
     const quantityInput = document.getElementById('bond-quantity');
     if (quantityInput) {
         quantityInput.addEventListener('input', updateBondTotalAmount);
     }
 
-    // 加载推荐债券列表
+    // Load recommended bonds list
     loadRecommendedBonds();
 }
 
-// 查询单个债券
+// Query single bond
 async function querySingleBond() {
     const symbolInput = document.getElementById('bond-symbol-input');
     const symbol = symbolInput.value.trim().toUpperCase();
     
     if (!symbol) {
-        alert('请输入债券代码');
+        alert('Please enter a bond code');
         return;
     }
 
-    console.log('查询债券:', symbol);
+    console.log('Querying bond:', symbol);
 
     try {
         const response = await fetch(`/api/bonds/single/${symbol}`);
@@ -71,24 +71,24 @@ async function querySingleBond() {
         if (response.ok && data) {
             displaySingleBondResult(data);
         } else {
-            alert(data.error || '查询失败');
+            alert(data.error || 'Query failed');
         }
     } catch (error) {
-        console.error('查询债券失败:', error);
-        alert('查询失败，请稍后重试');
+        console.error('Failed to query bond:', error);
+        alert('Query failed, please try again later');
     }
 }
 
-// 显示单个债券查询结果
+// Display single bond query result
 function displaySingleBondResult(bond) {
     const resultDiv = document.getElementById('single-bond-result');
     
     if (!resultDiv) {
-        console.error('找不到single-bond-result元素');
+        console.error('Cannot find single-bond-result element');
         return;
     }
     
-    // 安全的数据转换
+    // Safe data conversion
     const price = parseFloat(bond.current_price || bond.price || 0);
     const couponRate = parseFloat(bond.coupon_rate || bond.yield || 0);
     const faceValue = parseFloat(bond.face_value || 1000);
@@ -96,16 +96,16 @@ function displaySingleBondResult(bond) {
     const changeClass = changePercent >= 0 ? 'positive' : 'negative';
     const changeSign = changePercent >= 0 ? '+' : '';
     
-    // 格式化日期
-    let maturityDate = '未知';
+    // Format date
+    let maturityDate = 'Unknown';
     if (bond.maturity_date) {
         try {
             const date = new Date(bond.maturity_date);
             if (!isNaN(date.getTime())) {
-                maturityDate = date.toLocaleDateString('zh-CN');
+                maturityDate = date.toLocaleDateString('en-US');
             }
         } catch (e) {
-            console.error('日期解析错误:', e);
+            console.error('Date parsing error:', e);
         }
     }
 
@@ -122,25 +122,25 @@ function displaySingleBondResult(bond) {
                 </div>
                 <div class="stock-stats">
                     <div class="stat-item">
-                        <span class="stat-label">面值:</span>
+                        <span class="stat-label">Face Value:</span>
                         <span class="stat-value">¥${faceValue.toFixed(2)}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">票面利率:</span>
+                        <span class="stat-label">Coupon Rate:</span>
                         <span class="stat-value">${couponRate.toFixed(2)}%</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">到期日:</span>
+                        <span class="stat-label">Maturity Date:</span>
                         <span class="stat-value">${maturityDate}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">评级:</span>
+                        <span class="stat-label">Rating:</span>
                         <span class="stat-value">${bond.rating || 'AAA'}</span>
                     </div>
                 </div>
                 <div class="stock-actions">
                     <button class="btn btn-primary" onclick="showBuyBondModal('${bond.symbol}', '${bond.name || bond.symbol}', ${price})">
-                        购买债券
+                        Buy Bond
                     </button>
                 </div>
             </div>
@@ -150,55 +150,55 @@ function displaySingleBondResult(bond) {
     resultDiv.style.display = 'block';
 }
 
-// 加载推荐债券列表
+// Load recommended bonds list
 async function loadRecommendedBonds() {
-    console.log('开始加载推荐债券列表');
+    console.log('Starting to load recommended bonds list');
     
     const container = document.getElementById('recommended-bonds-list');
     if (!container) {
-        console.error('找不到recommended-bonds-list元素');
+        console.error('Cannot find recommended-bonds-list element');
         return;
     }
     
-    container.innerHTML = '<div class="loading">加载债券数据中...</div>';
+    container.innerHTML = '<div class="loading">Loading bond data...</div>';
     
     try {
         const response = await fetch('/api/bonds');
-        console.log('债券API响应状态:', response.status);
+        console.log('Bond API response status:', response.status);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
         const bonds = await response.json();
-        console.log('获取到债券数据:', bonds);
+        console.log('Retrieved bond data:', bonds);
         
         if (bonds && bonds.length > 0) {
             displayRecommendedBonds(bonds.slice(0, 5)); // 只显示前5个
         } else {
-            container.innerHTML = '<div class="no-data">暂无债券数据</div>';
+            container.innerHTML = '<div class="no-data">No bond data available</div>';
         }
     } catch (error) {
-        console.error('获取债券列表失败:', error);
-        container.innerHTML = '<div class="error-message">加载失败: ' + error.message + '</div>';
+        console.error('Failed to get bond list:', error);
+        container.innerHTML = '<div class="error-message">Loading failed: ' + error.message + '</div>';
     }
 }
 
-// 显示推荐债券列表
+// Display recommended bonds list
 function displayRecommendedBonds(bonds) {
     const container = document.getElementById('recommended-bonds-list');
     
     if (!container) {
-        console.error('找不到recommended-bonds-list元素');
+        console.error('Cannot find recommended-bonds-list element');
         return;
     }
     
     if (!bonds || bonds.length === 0) {
-        container.innerHTML = '<div class="no-data">暂无债券数据</div>';
+        container.innerHTML = '<div class="no-data">No bond data available</div>';
         return;
     }
 
-    console.log('显示债券数量:', bonds.length);
+    console.log('Displaying bond count:', bonds.length);
 
     const bondsHtml = bonds.map(bond => {
         // 安全的数据转换
@@ -208,7 +208,7 @@ function displayRecommendedBonds(bonds) {
         const changeClass = changePercent >= 0 ? 'positive' : 'negative';
         const changeSign = changePercent >= 0 ? '+' : '';
         const rating = bond.rating || 'AAA';
-        const issuer = bond.issuer || '政府';
+        const issuer = bond.issuer || 'Government';
 
         return `
             <div class="stock-card bond-card">
@@ -223,21 +223,21 @@ function displayRecommendedBonds(bonds) {
                     </div>
                     <div class="stock-stats">
                         <div class="stat-item">
-                            <span class="stat-label">票面利率:</span>
+                            <span class="stat-label">Coupon Rate:</span>
                             <span class="stat-value">${couponRate.toFixed(2)}%</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">评级:</span>
+                            <span class="stat-label">Rating:</span>
                             <span class="stat-value">${rating}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">发行方:</span>
+                            <span class="stat-label">Issuer:</span>
                             <span class="stat-value">${issuer}</span>
                         </div>
                     </div>
                     <div class="stock-actions">
                         <button class="btn btn-primary btn-sm buy-bond-btn" onclick="showBuyBondModal('${bond.symbol}', '${bond.name || bond.symbol}', ${price})">
-                            立即购买
+                            Buy Now
                         </button>
                     </div>
                 </div>
@@ -246,19 +246,19 @@ function displayRecommendedBonds(bonds) {
     }).join('');
 
     container.innerHTML = bondsHtml;
-    console.log('债券列表显示完成');
+    console.log('Bond list display completed');
 }
 
-// 刷新推荐债券列表
+// Refresh recommended bonds list
 function refreshRecommendedBonds() {
     loadRecommendedBonds();
 }
 
-// 显示购买债券模态框 - 直接跳转到增加资产页面
+// Show buy bond modal - directly redirect to add asset page
 function showBuyBondModal(symbol, name, price) {
-    console.log('购买债券:', symbol, name, price);
+    console.log('Buying bond:', symbol, name, price);
     
-    // 显示加载提示
+    // Show loading hint
     const loadingDiv = document.createElement('div');
     loadingDiv.style.cssText = `
         position: fixed;
@@ -272,17 +272,17 @@ function showBuyBondModal(symbol, name, price) {
         z-index: 1000;
         text-align: center;
     `;
-    loadingDiv.innerHTML = '<div>正在获取债券信息...</div>';
+    loadingDiv.innerHTML = '<div>Getting bond information...</div>';
     document.body.appendChild(loadingDiv);
     
-    // 获取完整的债券信息
+    // Get complete bond information
     fetch(`/api/bonds/single/${symbol}`)
         .then(response => response.json())
         .then(data => {
             document.body.removeChild(loadingDiv);
             
             if (data && !data.error) {
-                // 格式化到期日期
+                // Format maturity date
                 let maturityDate = '';
                 if (data.maturity_date) {
                     const date = new Date(data.maturity_date);
@@ -298,23 +298,23 @@ function showBuyBondModal(symbol, name, price) {
                     faceValue: data.face_value || 1000,
                     maturityDate: maturityDate,
                     rating: data.rating || 'AAA',
-                    issuer: data.issuer || '政府'
+                    issuer: data.issuer || 'Government'
                 };
                 
                 localStorage.setItem('prefilledAsset', JSON.stringify(bondData));
-                console.log('债券信息已存储到localStorage:', bondData);
+                console.log('Bond information stored in localStorage:', bondData);
                 
-                // 跳转到增加资产页面
+                // Redirect to add asset page
                 window.location.href = 'add_asset.html';
             } else {
-                alert('获取债券信息失败: ' + (data.error || '未知错误'));
+                alert('Failed to get bond information: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
             document.body.removeChild(loadingDiv);
-            console.error('获取债券详情失败:', error);
+            console.error('Failed to get bond details:', error);
             
-            // 使用基本信息跳转
+            // Redirect with basic information
             const bondData = {
                 type: 'bond',
                 symbol: symbol,
@@ -330,7 +330,7 @@ function showBuyBondModal(symbol, name, price) {
         });
 }
 
-// 关闭购买债券模态框
+// Close buy bond modal
 function closeBuyBondModal() {
     const modal = document.getElementById('buy-bond-modal');
     if (modal) {
@@ -339,7 +339,7 @@ function closeBuyBondModal() {
     currentBondData = null;
 }
 
-// 设置债券购买数量
+// Set bond purchase quantity
 function setBondQuantity(quantity) {
     const quantityInput = document.getElementById('bond-quantity');
     if (quantityInput) {
@@ -348,7 +348,7 @@ function setBondQuantity(quantity) {
     }
 }
 
-// 更新债券总金额
+// Update bond total amount
 function updateBondTotalAmount() {
     if (!currentBondData) return;
     
@@ -362,7 +362,7 @@ function updateBondTotalAmount() {
     }
 }
 
-// 确认购买债券
+// Confirm bond purchase
 async function confirmBuyBond() {
     if (!currentBondData) return;
     
@@ -372,7 +372,7 @@ async function confirmBuyBond() {
     const quantity = parseInt(quantityInput.value) || 1;
     
     if (quantity <= 0) {
-        alert('请输入有效的购买数量');
+        alert('Please enter a valid purchase quantity');
         return;
     }
     
@@ -393,18 +393,18 @@ async function confirmBuyBond() {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            alert(`债券购买成功！\n债券: ${currentBondData.name}\n数量: ${quantity}份\n总金额: ¥${result.totalCost}`);
+            alert(`Bond purchase successful!\nBond: ${currentBondData.name}\nQuantity: ${quantity} units\nTotal Amount: ¥${result.totalCost}`);
             closeBuyBondModal();
             
-            // 询问是否跳转到投资组合页面
-            if (confirm('购买成功！是否查看您的投资组合？')) {
+            // Ask whether to redirect to portfolio page
+            if (confirm('Purchase successful! Would you like to view your portfolio?')) {
                 window.location.href = 'portfolio.html';
             }
         } else {
-            alert(result.error || '购买失败');
+            alert(result.error || 'Purchase failed');
         }
     } catch (error) {
-        console.error('购买债券失败:', error);
-        alert('购买失败，请稍后重试');
+        console.error('Failed to purchase bond:', error);
+        alert('Purchase failed, please try again later');
     }
 }

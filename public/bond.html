@@ -1,23 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>债券市场 - 投资组合管理系统</title>
+    <title>Bond Market - Portfolio Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/stock-market.css">
     <link rel="stylesheet" href="css/bond-market.css">
+    <link rel="stylesheet" href="css/unified-style.css">
 </head>
 <body>
     <header>
-        <h1>投资组合管理系统</h1>
+        <h1>Portfolio Management System</h1>
         <nav>
             <ul>
-                <li><a href="index.html">首页</a></li>
-                <li><a href="portfolio.html">投资组合</a></li>
-                <li><a href="stock.html">股票市场</a></li>
-                <li><a href="bond.html" class="active">债券市场</a></li>
-                <li><a href="add_asset.html">添加资产</a></li>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="portfolio.html">Portfolio</a></li>
+                <li><a href="stock.html">Stock Market</a></li>
+                <li><a href="bond.html" class="active">Bond Market</a></li>
+                <li><a href="add_asset.html">Add Asset</a></li>
             </ul>
         </nav>
     </header>
@@ -26,17 +27,17 @@
         <div class="stock-market-container">
             <!-- 单个债券查询 -->
             <section id="single-bond-query" class="stock-section">
-                <h2>单个债券查询</h2>
+                <h2>Single Bond Query</h2>
                 <div class="query-form">
                     <div class="input-group">
                         <input 
                             type="text" 
                             id="bond-symbol-input" 
-                            placeholder="输入债券代码 (例如: US10Y, CN5Y, DE10Y)"
+                            placeholder="Enter bond code (e.g. US10Y, CN5Y, DE10Y)"
                             class="stock-input"
                         >
                         <button id="query-single-bond-btn" class="btn btn-primary">
-                            查询
+                            Search
                         </button>
                     </div>
                 </div>
@@ -48,9 +49,9 @@
             <!-- 推荐债券与我的关注 -->
             <section id="recommended-bonds" class="stock-section">
                 <div class="section-header">
-                    <h2>推荐债券与我的关注</h2>
+                    <h2>Recommended Bonds</h2>
                     <button class="btn btn-secondary btn-sm" onclick="refreshRecommendedBonds()">
-                        刷新列表
+                        Refresh List
                     </button>
                 </div>
                 <div id="recommended-bonds-list" class="recommended-stocks-container">
@@ -64,42 +65,42 @@
     <div id="buy-bond-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>购买债券</h3>
+                <h3>Buy Bond</h3>
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="bond-info">
-                    <h4 id="modal-bond-name">债券名称</h4>
-                    <p>代码: <span id="modal-bond-symbol">-</span></p>
-                    <p>当前价格: <span id="modal-bond-price">¥0.00</span></p>
+                    <h4 id="modal-bond-name">Bond Name</h4>
+                    <p>Code: <span id="modal-bond-symbol">-</span></p>
+                    <p>Current Price: <span id="modal-bond-price">¥0.00</span></p>
                 </div>
                 <div class="purchase-form">
                     <div class="form-group">
-                        <label for="bond-quantity">购买数量:</label>
+                        <label for="bond-quantity">Purchase Quantity:</label>
                         <div class="quantity-controls">
                             <input type="number" id="bond-quantity" min="1" value="1" class="quantity-input">
                             <div class="quick-select">
-                                <button type="button" onclick="setBondQuantity(1)">1份</button>
-                                <button type="button" onclick="setBondQuantity(5)">5份</button>
-                                <button type="button" onclick="setBondQuantity(10)">10份</button>
+                                <button type="button" onclick="setBondQuantity(1)">1 unit</button>
+                                <button type="button" onclick="setBondQuantity(5)">5 units</button>
+                                <button type="button" onclick="setBondQuantity(10)">10 units</button>
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>总金额:</label>
+                        <label>Total Amount:</label>
                         <div class="total-amount" id="bond-total-amount">¥0.00</div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeBuyBondModal()">取消</button>
-                <button type="button" class="btn btn-primary" onclick="confirmBuyBond()">确认购买</button>
+                <button type="button" class="btn btn-secondary" onclick="closeBuyBondModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmBuyBond()">Confirm Purchase</button>
             </div>
         </div>
     </div>
 
     <footer>
-        <p>&copy; 2024 投资组合管理系统</p>
+        <p>&copy; 2024 Portfolio Management System</p>
     </footer>
 
     <script src="js/bond.js"></script>

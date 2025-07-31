@@ -150,6 +150,7 @@ th, td {
 th {
     background-color: #f8f9fa;
     font-weight: bold;
+    color: #333333;
 }
 
 tr:hover {

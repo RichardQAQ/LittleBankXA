@@ -1,13 +1,121 @@
-/* 债券市场样式 - 保持与股票市场一致 */
 
-/* 债券卡片样式与股票卡片保持一致 */
+
+/* 债券卡片样式 */
 .bond-card {
-    /* 继承stock-card的样式 */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3273dc;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* 购买按钮样式简化 */
+.bond-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.bond-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.bond-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.bond-symbol {
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #555;
+}
+
+/* 购买按钮样式 */
 .buy-bond-btn {
-    /* 使用标准按钮样式 */
+    background-color: #3273dc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.buy-bond-btn:hover {
+    background-color: #2366d1;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 债券详情样式 */
+.bond-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.bond-detail-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.bond-detail-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.bond-detail-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+th {
+    background-color: #f5f7fa;
+    color: #333333;
+    font-weight: 600;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+    background-color: #f5f7fa;
+}
+
+tr:last-child td {
+    border-bottom: none;
 }
 
 /* 模态框样式保持简洁 */

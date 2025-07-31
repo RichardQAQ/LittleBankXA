@@ -6,23 +6,23 @@ const yahooFinanceService = require('./services/priceService');
 
 async function initDatabase() {
   try {
-    console.log('尝试连接数据库...');
-    // 测试连接
+    console.log('Connecting to database...');
+    // Test connection
     const connection = await pool.getConnection();
-    console.log('数据库连接成功');
+    console.log('Database connection successful');
     connection.release();
 
-    // 创建数据库
-    console.log('尝试创建数据库...');
+    // Create database
+    console.log('Creating database...');
     await pool.query('CREATE DATABASE IF NOT EXISTS investment_system');
-    console.log('数据库创建成功或已存在');
+    console.log('Database created or already exists');
 
-    // 选择数据库
-    console.log('尝试选择数据库...');
+    // Select database
+    console.log('Selecting database...');
     await pool.query('USE investment_system');
-    console.log('数据库选择成功');
+    console.log('Database selected');
 
-    // 创建用户表
+    // Create users table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,9 +35,9 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('用户表创建成功');
+    console.log('Users table created');
 
-    // 创建股票表
+    // Create stocks table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS stocks (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -50,9 +50,9 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-    console.log('股票表创建成功');
+    console.log('Stocks table created');
 
-    // 创建债券表
+    // Create bonds table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bonds (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -68,9 +68,9 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-    console.log('债券表创建成功');
+    console.log('Bonds table created');
 
-    // 创建资产表
+    // Create portfolio table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS portfolio (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -84,9 +84,9 @@ async function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
-    console.log('资产表创建成功');
+    console.log('Portfolio table created');
 
-    // 创建投资组合历史表
+    // Create portfolio history table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS portfolio_history (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -96,77 +96,77 @@ async function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
-    console.log('投资组合历史表创建成功');
+    console.log('Portfolio history table created');
 
-    // 检查是否有默认用户
+    // Check for default user
     const [users] = await pool.query('SELECT * FROM users WHERE id = 1');
     if (users.length === 0) {
-      // 创建默认用户
+      // Create default user
       await pool.query(`
         INSERT INTO users (id, username, total_assets, stock_value, bond_value, cash_balance, total_return_rate)
-        VALUES (1, '张三', 50000.00, 0.00, 0.00, 50000.00, 0.00)
+        VALUES (1, 'User', 50000.00, 0.00, 0.00, 50000.00, 0.00)
       `);
-      console.log('创建默认用户成功');
+      console.log('Default user created');
     } else {
-      console.log('默认用户已存在');
+      console.log('Default user already exists');
     }
 
-    // 创建示例股票数据
+    // Create sample stock data
     const stocks = [
-      { symbol: 'AAPL', name: '苹果公司', current_price: 214.05, change_percent: 0, volume: 50000000, market_cap: 2900000000000 },
-      { symbol: 'MSFT', name: '微软公司', current_price: 512.50, change_percent: 0, volume: 25000000, market_cap: 3100000000000 },
-      { symbol: 'GOOG', name: '谷歌公司', current_price: 135.89, change_percent: 0, volume: 30000000, market_cap: 1700000000000 },
-      { symbol: 'TSLA', name: '特斯拉公司', current_price: 325.59, change_percent: 0, volume: 80000000, market_cap: 780000000000 },
-      { symbol: 'AMZN', name: '亚马逊公司', current_price: 142.33, change_percent: 0, volume: 35000000, market_cap: 1500000000000 },
-      { symbol: 'META', name: 'Meta', current_price: 325.78, change_percent: 0, volume: 20000000, market_cap: 850000000000 },
-      { symbol: 'NVDA', name: '英伟达公司', current_price: 875.23, change_percent: 0, volume: 45000000, market_cap: 2200000000000 },
-      { symbol: 'NFLX', name: '奈飞公司', current_price: 456.12, change_percent: 0, volume: 15000000, market_cap: 200000000000 },
-      { symbol: 'AMD', name: 'AMD公司', current_price: 123.45, change_percent: 0, volume: 60000000, market_cap: 200000000000 },
-      { symbol: 'INTC', name: '英特尔公司', current_price: 45.67, change_percent: 0, volume: 70000000, market_cap: 190000000000 }
+      { symbol: 'AAPL', name: 'Apple Inc.', current_price: 214.05, change_percent: 0, volume: 50000000, market_cap: 2900000000000 },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', current_price: 512.50, change_percent: 0, volume: 25000000, market_cap: 3100000000000 },
+      { symbol: 'GOOG', name: 'Google Inc.', current_price: 135.89, change_percent: 0, volume: 30000000, market_cap: 1700000000000 },
+      { symbol: 'TSLA', name: 'Tesla Inc.', current_price: 325.59, change_percent: 0, volume: 80000000, market_cap: 780000000000 },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', current_price: 142.33, change_percent: 0, volume: 35000000, market_cap: 1500000000000 },
+      { symbol: 'META', name: 'Meta Platforms Inc.', current_price: 325.78, change_percent: 0, volume: 20000000, market_cap: 850000000000 },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', current_price: 875.23, change_percent: 0, volume: 45000000, market_cap: 2200000000000 },
+      { symbol: 'NFLX', name: 'Netflix Inc.', current_price: 456.12, change_percent: 0, volume: 15000000, market_cap: 200000000000 },
+      { symbol: 'AMD', name: 'Advanced Micro Devices Inc.', current_price: 123.45, change_percent: 0, volume: 60000000, market_cap: 200000000000 },
+      { symbol: 'INTC', name: 'Intel Corporation', current_price: 45.67, change_percent: 0, volume: 70000000, market_cap: 190000000000 }
     ];
 
-    // 检查股票表是否为空
+    // Check if stocks table is empty
     const [stockCount] = await pool.query('SELECT COUNT(*) as count FROM stocks');
     if (stockCount[0].count === 0) {
-      // 插入示例股票
+      // Insert sample stocks
       for (const stock of stocks) {
         await pool.query(
           'INSERT INTO stocks (symbol, name, current_price, change_percent, volume, market_cap) VALUES (?, ?, ?, ?, ?, ?)',
           [stock.symbol, stock.name, stock.current_price, stock.change_percent, stock.volume, stock.market_cap]
         );
       }
-      console.log('示例股票数据插入成功');
+      console.log('Sample stock data inserted');
     } else {
-      console.log('股票数据已存在，跳过插入');
+      console.log('Stock data already exists, skipping insertion');
     }
 
-    // 创建示例债券数据
+    // Create sample bond data
     const bonds = [
-      { symbol: 'US10Y', name: '10', face_value: 1000, coupon_rate: 3.85, maturity_date: '2034-07-21', current_price: 985.50, change_percent: 0, rating: 'AAA', issuer: '' },
-      { symbol: 'CN5Y', name: '5', face_value: 1000, coupon_rate: 2.50, maturity_date: '2029-07-21', current_price: 992.30, change_percent: 0, rating: 'AAA', issuer: '' },
-      { symbol: 'US30Y', name: '30', face_value: 1000, coupon_rate: 4.15, maturity_date: '2054-07-21', current_price: 975.80, change_percent: 0, rating: 'AAA', issuer: '' },
-      { symbol: 'DE10Y', name: '10', face_value: 1000, coupon_rate: 2.25, maturity_date: '2034-07-21', current_price: 998.20, change_percent: 0, rating: 'AAA', issuer: '' }
+      { symbol: 'US10Y', name: '10-Year Treasury', face_value: 1000, coupon_rate: 3.85, maturity_date: '2034-07-21', current_price: 985.50, change_percent: 0, rating: 'AAA', issuer: 'U.S. Treasury' },
+      { symbol: 'CN5Y', name: '5-Year Treasury', face_value: 1000, coupon_rate: 2.50, maturity_date: '2029-07-21', current_price: 992.30, change_percent: 0, rating: 'AAA', issuer: 'Chinese Treasury' },
+      { symbol: 'US30Y', name: '30-Year Treasury', face_value: 1000, coupon_rate: 4.15, maturity_date: '2054-07-21', current_price: 975.80, change_percent: 0, rating: 'AAA', issuer: 'U.S. Treasury' },
+      { symbol: 'DE10Y', name: '10-Year German Bond', face_value: 1000, coupon_rate: 2.25, maturity_date: '2034-07-21', current_price: 998.20, change_percent: 0, rating: 'AAA', issuer: 'German Government' }
     ];
 
-    // 检查债券表是否为空
+    // Check if bonds table is empty
     const [bondCount] = await pool.query('SELECT COUNT(*) as count FROM bonds');
     if (bondCount[0].count === 0) {
-      // 插入示例债券
+      // Insert sample bonds
       for (const bond of bonds) {
         await pool.query(
           'INSERT INTO bonds (symbol, name, face_value, coupon_rate, maturity_date, current_price, change_percent, rating, issuer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [bond.symbol, bond.name, bond.face_value, bond.coupon_rate, bond.maturity_date, bond.current_price, bond.change_percent, bond.rating, bond.issuer]
         );
       }
-      console.log('示例债券数据插入成功');
+      console.log('Sample bond data inserted');
     } else {
-      console.log('债券数据已存在，跳过插入');
+      console.log('Bond data already exists, skipping insertion');
     }
 
-    // 检查投资组合是否为空
+    // Check if portfolio is empty
     const [portfolioCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio');
     if (portfolioCount[0].count === 0) {
-      // 创建示例投资组合数据
+      // Create sample portfolio data
       const portfolio = [
         { user_id: 1, asset_type: 'stock', asset_id: 2, quantity: 5, purchase_price: 400.30, purchase_date: '2024-02-19' },
         { user_id: 1, asset_type: 'stock', asset_id: 3, quantity: 15, purchase_price: 125.40, purchase_date: '2024-03-04' },
@@ -175,33 +175,33 @@ async function initDatabase() {
         { user_id: 1, asset_type: 'cash', asset_id: 0, quantity: 5000, purchase_price: 1.00, purchase_date: '2024-05-19' }
       ];
 
-      // 插入示例投资组合
+      // Insert sample portfolio
       for (const item of portfolio) {
         await pool.query(
           'INSERT INTO portfolio (user_id, asset_type, asset_id, quantity, purchase_price, purchase_date) VALUES (?, ?, ?, ?, ?, ?)',
           [item.user_id, item.asset_type, item.asset_id, item.quantity, item.purchase_price, item.purchase_date]
         );
       }
-      console.log('示例投资组合数据插入成功');
+      console.log('Sample portfolio data inserted');
     } else {
-      console.log('投资组合数据已存在，跳过插入');
+      console.log('Portfolio data already exists, skipping insertion');
     }
 
-    // 检查投资组合历史是否为空
+    // Check if portfolio history is empty
     const [historyCount] = await pool.query('SELECT COUNT(*) as count FROM portfolio_history');
     if (historyCount[0].count === 0) {
-      // 创建过去30天的投资组合历史数据
+      // Create portfolio history data for the past 30 days
       const today = new Date();
       let value = 50000;
-      const growthRate = 1.01; // 每天增长1%
+      const growthRate = 1.01; // 1% daily growth
 
       for (let i = 30; i >= 0; i--) {
         const date = new Date();
         date.setDate(today.getDate() - i);
         const historyDate = date.toISOString().split('T')[0];
         
-        // 随机波动，但总体呈上升趋势
-        const dailyChange = (Math.random() - 0.3) * 0.02; // -0.3%到+1.7%的随机波动
+        // Random fluctuation with upward trend
+        const dailyChange = (Math.random() - 0.3) * 0.02; // -0.3% to +1.7% random fluctuation
         value = value * (1 + dailyChange);
         
         await pool.query(
@@ -209,35 +209,35 @@ async function initDatabase() {
           [1, historyDate, value.toFixed(2)]
         );
       }
-      console.log('示例投资组合历史数据插入成功');
+      console.log('Sample portfolio history data inserted');
     } else {
-      console.log('投资组合历史数据已存在，跳过插入');
+      console.log('Portfolio history data already exists, skipping insertion');
     }
 
-    // 更新用户资产总值
+    // Update user asset values
     await updateUserAssetValues(1);
     
-    console.log('数据库初始化成功');
+    console.log('Database initialization successful');
     
-    // 尝试从Yahoo Finance获取实时股票数据
+    // Try to get real-time stock data from Yahoo Finance
     try {
-      console.log('尝试从Yahoo Finance获取实时股票数据...');
+      console.log('Fetching real-time stock data from Yahoo Finance...');
       await yahooFinanceService.updateAllStockPrices();
-      console.log('实时股票数据更新成功');
+      console.log('Real-time stock data updated successfully');
     } catch (error) {
-      console.error('获取实时股票数据失败:', error);
-      console.log('将使用默认股票数据');
+      console.error('Failed to get real-time stock data:', error);
+      console.log('Using default stock data');
     }
     
   } catch (error) {
-    console.error('数据库初始化失败:', error);
+    console.error('Database initialization failed:', error);
   }
 }
 
-// 更新用户资产总值
+// Update user asset values
 async function updateUserAssetValues(userId) {
   try {
-    // 获取用户的股票资产总值
+    // Get user's stock asset value
     const [stockResult] = await pool.query(`
       SELECT COALESCE(SUM(p.quantity * s.current_price), 0) as total_stock_value
       FROM portfolio p
@@ -245,7 +245,7 @@ async function updateUserAssetValues(userId) {
       WHERE p.user_id = ? AND p.status = 1
     `, [userId]);
     
-    // 获取用户的债券资产总值
+    // Get user's bond asset value
     const [bondResult] = await pool.query(`
       SELECT COALESCE(SUM(p.quantity * b.current_price), 0) as total_bond_value
       FROM portfolio p
@@ -253,14 +253,14 @@ async function updateUserAssetValues(userId) {
       WHERE p.user_id = ? AND p.status = 1
     `, [userId]);
     
-    // 获取用户的现金余额
+    // Get user's cash balance
     const [cashResult] = await pool.query(`
       SELECT COALESCE(SUM(quantity * purchase_price), 0) as total_cash
       FROM portfolio
       WHERE user_id = ? AND asset_type = 'cash' AND status = 1
     `, [userId]);
     
-    // 获取用户的当前现金余额
+    // Get user's current cash balance
     const [userResult] = await pool.query(`
       SELECT cash_balance FROM users WHERE id = ?
     `, [userId]);
@@ -270,15 +270,15 @@ async function updateUserAssetValues(userId) {
     const portfolioCash = parseFloat(cashResult[0].total_cash || 0);
     const cashBalance = parseFloat(userResult[0].cash_balance || 0);
     
-    // 计算总资产
+    // Calculate total assets
     const totalAssets = stockValue + bondValue + cashBalance;
     
-    // 计算总回报率（假设初始资产为50000）
+    // Calculate total return rate (assuming initial assets of 50000)
     const initialAssets = 50000;
     const totalReturn = totalAssets - initialAssets;
     const totalReturnRate = (totalReturn / initialAssets) * 100;
     
-    // 更新用户资产信息
+    // Update user asset information
     await pool.query(`
       UPDATE users
       SET stock_value = ?,
@@ -289,44 +289,44 @@ async function updateUserAssetValues(userId) {
       WHERE id = ?
     `, [stockValue, bondValue, cashBalance, totalAssets, totalReturnRate, userId]);
     
-    console.log('用户资产总值更新成功');
-    console.log(`股票价值: ${stockValue}, 债券价值: ${bondValue}, 现金余额: ${cashBalance}, 总资产: ${totalAssets}, 总回报率: ${totalReturnRate}%`);
+    console.log('User asset values updated successfully');
+    console.log(`Stock value: ${stockValue}, Bond value: ${bondValue}, Cash balance: ${cashBalance}, Total assets: ${totalAssets}, Total return rate: ${totalReturnRate}%`);
     
-    // 更新今天的投资组合历史
+    // Update today's portfolio history
     const today = new Date().toISOString().split('T')[0];
     
-    // 检查今天是否已有记录
+    // Check if today's record already exists
     const [existingRecord] = await pool.query(
       'SELECT id FROM portfolio_history WHERE user_id = ? AND date = ?',
       [userId, today]
     );
     
     if (existingRecord.length > 0) {
-      // 更新今天的记录
+      // Update today's record
       await pool.query(
         'UPDATE portfolio_history SET total_value = ? WHERE id = ?',
         [totalAssets, existingRecord[0].id]
       );
     } else {
-      // 插入今天的记录
+      // Insert today's record
       await pool.query(
         'INSERT INTO portfolio_history (user_id, date, total_value) VALUES (?, ?, ?)',
         [userId, today, totalAssets]
       );
     }
     
-    console.log('投资组合历史更新成功');
+    console.log('Portfolio history updated successfully');
     
   } catch (error) {
-    console.error('更新用户资产总值失败:', error);
+    console.error('Failed to update user asset values:', error);
   }
 }
 
-// 执行初始化
+// Execute initialization
 initDatabase().then(() => {
-  console.log('数据库初始化完成，程序将退出');
+  console.log('Database initialization complete, program will exit');
   process.exit(0);
 }).catch(err => {
-  console.error('数据库初始化过程中发生错误:', err);
+  console.error('Error during database initialization:', err);
   process.exit(1);
 });
